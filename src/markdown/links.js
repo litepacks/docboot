@@ -12,7 +12,7 @@ import path from 'node:path';
  * @param {string} currentRelativePath Relative path of the current markdown file (e.g. 'getting-started/index.md')
  * @returns {string} Normalized clean route
  */
-export function normalizeMarkdownLink(href = '', currentRelativePath = '') {
+export function normalizeMarkdownLink(href = '', currentRelativePath = '', base = '/') {
   if (!href) return '';
 
   const trimmed = href.trim();
@@ -67,5 +67,9 @@ export function normalizeMarkdownLink(href = '', currentRelativePath = '') {
     if (!resolvedPath) resolvedPath = '/';
   }
 
-  return (resolvedPath || '/') + hash;
+  const cleanRoute = (resolvedPath || '/') + hash;
+  if (!base || base === '/' || base === '.') return cleanRoute;
+  const normalizedBase = '/' + String(base).replace(/^\/+|\/+$/g, '') + '/';
+  if (cleanRoute === '/') return normalizedBase;
+  return normalizedBase + cleanRoute.replace(/^\/+/, '');
 }

@@ -15,6 +15,7 @@ import { CacheManager } from '../cache/index.js';
 import { hashString, hashObject } from '../cache/hasher.js';
 import { escapeHtml } from '../markdown/highlighter.js';
 import { renderNotFoundPage } from '../renderer/not-found.js';
+import { withBase } from '../config/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -239,7 +240,7 @@ export class SiteBuilder {
     // 3. Search index & search asset setup (reuses cached search entries)
     const { index: searchIndex, hash, filename: searchFilename } = buildSearchIndex(pages);
     const searchJsonPayload = JSON.stringify(searchIndex, null, isDev ? 2 : 0);
-    const searchIndexUrl = `/assets/${searchFilename}`;
+    const searchIndexUrl = withBase(`/assets/${searchFilename}`, this.config.base);
 
     // 4. Pre-render all HTML pages
     const renderedPages = [];

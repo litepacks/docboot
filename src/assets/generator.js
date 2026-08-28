@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { withBase } from '../config/index.js';
 
 export class AssetGenerator {
   constructor(config, logger) {
@@ -14,6 +15,7 @@ export class AssetGenerator {
     const title = this.config.title || 'Documentation';
     const initial = title.charAt(0).toUpperCase() || 'D';
     const description = this.config.description || 'Modern documentation website';
+    const base = this.config.base || '/';
 
     const generatedFiles = [];
 
@@ -75,13 +77,13 @@ export class AssetGenerator {
         name: title,
         short_name: title,
         description: description,
-        start_url: '/',
+        start_url: withBase('/', base),
         display: 'standalone',
         background_color: '#090d16',
         theme_color: '#38bdf8',
         icons: [
           {
-            src: '/favicon.svg',
+            src: withBase('/favicon.svg', base),
             sizes: 'any',
             type: 'image/svg+xml'
           }
@@ -95,12 +97,12 @@ export class AssetGenerator {
       const swContent = `// Docboot Stale-While-Revalidate Service Worker
 const CACHE_NAME = 'docboot-cache-v1';
 const PRECACHE_URLS = [
-  '/',
-  '/assets/docs.css',
-  '/assets/client.js',
-  '/assets/search-runtime.js',
-  '/favicon.svg',
-  '/manifest.webmanifest'
+  ${JSON.stringify(withBase('/', base))},
+  ${JSON.stringify(withBase('/assets/docs.css', base))},
+  ${JSON.stringify(withBase('/assets/client.js', base))},
+  ${JSON.stringify(withBase('/assets/search-runtime.js', base))},
+  ${JSON.stringify(withBase('/favicon.svg', base))},
+  ${JSON.stringify(withBase('/manifest.webmanifest', base))}
 ];
 
 self.addEventListener('install', (event) => {

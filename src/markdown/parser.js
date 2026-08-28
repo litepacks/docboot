@@ -44,6 +44,7 @@ export function isBadgeImage(href = '', alt = '', title = '') {
 export function parseMarkdown(rawMarkdown, options = {}) {
   const { frontmatter, content } = extractFrontmatter(rawMarkdown);
   const currentRelativePath = options.relativePath || '';
+  const base = options.base || options.config?.base || '/';
   const processedContent = processDirectives(content, options.config || {});
 
   const tocCollector = new TocCollector();
@@ -94,7 +95,7 @@ export function parseMarkdown(rawMarkdown, options = {}) {
     image({ href, title, text }) {
       referencedAssets.push(href);
       const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//');
-      const normalizedHref = isExternal ? href : normalizeMarkdownLink(href, currentRelativePath);
+      const normalizedHref = isExternal ? href : normalizeMarkdownLink(href, currentRelativePath, base);
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
 
       const isBadge = isBadgeImage(href, text, title);
@@ -165,10 +166,10 @@ export function parseMarkdown(rawMarkdown, options = {}) {
       if (isExternal) {
         externalLinks.push(href);
       } else {
-        internalLinks.push({ original: href, normalized: normalizeMarkdownLink(href, currentRelativePath) });
+        internalLinks.push({ original: href, normalized: normalizeMarkdownLink(href, currentRelativePath, base) });
       }
 
-      const normalizedHref = normalizeMarkdownLink(href, currentRelativePath);
+      const normalizedHref = normalizeMarkdownLink(href, currentRelativePath, base);
       const titleAttr = title ? ` title="${title}"` : '';
       const targetAttr = isExternal ? ` target="_blank" rel="noopener noreferrer"` : '';
 

@@ -1,5 +1,6 @@
 import { THEME_INIT_SCRIPT } from '../theme/theme-script.js';
 import { escapeHtml } from '../markdown/highlighter.js';
+import { withBase } from '../config/index.js';
 
 /**
  * Generates full standalone HTML page with modern, polished developer UI.
@@ -24,10 +25,11 @@ export function renderLayout({
   searchIndexUrl = '/assets/search-index.json',
   isDev = false
 }) {
+  const base = config.base || '/';
   const siteTitle = config.title || 'Documentation';
   const pageTitle = page.route === '/' ? siteTitle : `${page.title} — ${siteTitle}`;
   const pageDesc = page.frontmatter?.description || config.description || '';
-  const canonicalUrl = config.siteUrl ? `${config.siteUrl.replace(/\/$/, '')}${page.route}` : '';
+  const canonicalUrl = config.siteUrl ? `${config.siteUrl.replace(/\/$/, '')}${withBase(page.route, base)}` : '';
   const githubRepo = config.repo || '';  // Frontmatter Source Code Link Badge
   let sourceBadgeHtml = '';
   if (page.frontmatter?.source) {
@@ -90,10 +92,10 @@ export function renderLayout({
 </div>`;
   }
 
-  const sidebarHtml = renderSidebarHtml(sidebar, page.route);
+  const sidebarHtml = renderSidebarHtml(sidebar, page.route, base);
   const tocHtml = renderTocHtml(page.toc || []);
-  const breadcrumbsHtml = renderBreadcrumbsHtml(breadcrumbs);
-  const prevNextHtml = renderPrevNextHtml(prevNext);
+  const breadcrumbsHtml = renderBreadcrumbsHtml(breadcrumbs, base);
+  const prevNextHtml = renderPrevNextHtml(prevNext, base);
 
   return `<!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -114,12 +116,12 @@ export function renderLayout({
   </noscript>
 
   <!-- Favicon & PWA -->
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="${withBase('/favicon.svg', base)}">
+  <link rel="manifest" href="${withBase('/manifest.webmanifest', base)}">
   <script>
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
       window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js').catch(function() {});
+        navigator.serviceWorker.register('${withBase('/sw.js', base)}').catch(function() {});
       });
     }
   </script>
@@ -134,13 +136,14 @@ export function renderLayout({
   <!-- Anti-flash theme bootstrapper -->
   <script>${THEME_INIT_SCRIPT}</script>
   <script>
+    window.__DOCBOOT_BASE__ = ${JSON.stringify(base)};
     window.__DOCBOOT_SEARCH_INDEX_URL__ = window.__EUIX_SEARCH_INDEX_URL__ = ${JSON.stringify(searchIndexUrl)};
     window.__DOCBOOT_SEARCH_CONFIG__ = window.__EUIX_SEARCH_CONFIG__ = ${JSON.stringify(config.search || {})};
     ${isDev ? 'window.__DOCBOOT_DEV__ = window.__EUIX_DEV__ = true;' : ''}
   </script>
 
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/assets/docs.css">
+  <link rel="stylesheet" href="${withBase('/assets/docs.css', base)}">
 </head>
 <body class="bg-background text-foreground min-h-screen flex flex-col antialiased selection:bg-accent/20 selection:text-accent font-sans">
 
@@ -154,7 +157,7 @@ export function renderLayout({
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
 
-        <a href="/" class="flex items-center gap-2.5 font-bold text-foreground tracking-tight text-base hover:opacity-90 transition-opacity">
+        <a href="${withBase('/', base)}" class="flex items-center gap-2.5 font-bold text-foreground tracking-tight text-base hover:opacity-90 transition-opacity">
           <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-extrabold text-xs shadow-md shadow-blue-500/25">▲</div>
           <span class="bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text">${escapeHtml(siteTitle)}</span>
         </a>
@@ -371,12 +374,12 @@ export function renderLayout({
   </div>
 
   <!-- Scripts -->
-  <script src="/assets/docs.js"></script>
+  <script src="${withBase('/assets/docs.js', base)}"></script>
 </body>
 </html>`;
 }
 
-function renderSidebarHtml(sidebar, currentRoute) {
+function renderSidebarHtml(sidebar, currentRoute, base = '/') {
   let html = '<nav class="space-y-6 text-sm">';
 
   for (const group of sidebar) {
@@ -393,7 +396,7 @@ function renderSidebarHtml(sidebar, currentRoute) {
 
       html += `
         <li>
-          <a href="${item.route}" class="block px-3 py-1.5 rounded-lg text-[13px] transition-all ${activeClass}">
+          <a href="${withBase(item.route, base)}" class="block px-3 py-1.5 rounded-lg text-[13px] transition-all ${activeClass}">
             ${escapeHtml(item.title)}
           </a>
         </li>`;
@@ -422,18 +425,18 @@ function renderTocHtml(toc) {
   return html;
 }
 
-function renderBreadcrumbsHtml(breadcrumbs) {
+function renderBreadcrumbsHtml(breadcrumbs, base = '/') {
   if (!breadcrumbs || breadcrumbs.length <= 1) return '';
 
   let html = '<nav class="flex items-center gap-2 text-xs text-muted-foreground mb-8" aria-label="Breadcrumb">';
-  html += '<a href="/" class="hover:text-foreground transition-colors flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Docs</a>';
+  html += `<a href="${withBase('/', base)}" class="hover:text-foreground transition-colors flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>Docs</a>`;
 
   for (const crumb of breadcrumbs) {
     html += '<span class="text-border">/</span>';
     if (crumb.isCurrent) {
       html += `<span class="text-foreground font-medium">${escapeHtml(crumb.title)}</span>`;
     } else {
-      html += `<a href="${crumb.route}" class="hover:text-foreground transition-colors">${escapeHtml(crumb.title)}</a>`;
+      html += `<a href="${withBase(crumb.route, base)}" class="hover:text-foreground transition-colors">${escapeHtml(crumb.title)}</a>`;
     }
   }
 
@@ -441,13 +444,13 @@ function renderBreadcrumbsHtml(breadcrumbs) {
   return html;
 }
 
-function renderPrevNextHtml(prevNext) {
+function renderPrevNextHtml(prevNext, base = '/') {
   if (!prevNext || (!prevNext.prev && !prevNext.next)) return '';
 
   return `
 <div class="mt-16 pt-8 border-t border-border/80 grid grid-cols-1 sm:grid-cols-2 gap-4">
   ${prevNext.prev ? `
-  <a href="${prevNext.prev.route}" class="group flex flex-col p-4 rounded-xl border border-border/80 hover:border-accent/40 hover:bg-muted/40 transition-all text-left">
+  <a href="${withBase(prevNext.prev.route, base)}" class="group flex flex-col p-4 rounded-xl border border-border/80 hover:border-accent/40 hover:bg-muted/40 transition-all text-left">
     <span class="text-[11px] text-muted-foreground font-medium flex items-center gap-1.5">
       <svg class="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
       Previous
@@ -456,7 +459,7 @@ function renderPrevNextHtml(prevNext) {
   </a>` : '<div></div>'}
 
   ${prevNext.next ? `
-  <a href="${prevNext.next.route}" class="group flex flex-col p-4 rounded-xl border border-border/80 hover:border-accent/40 hover:bg-muted/40 transition-all text-right">
+  <a href="${withBase(prevNext.next.route, base)}" class="group flex flex-col p-4 rounded-xl border border-border/80 hover:border-accent/40 hover:bg-muted/40 transition-all text-right">
     <span class="text-[11px] text-muted-foreground font-medium flex items-center justify-end gap-1.5">
       Next
       <svg class="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>

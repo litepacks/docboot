@@ -13,6 +13,25 @@
 (function() {
   'use strict';
 
+  var BASE_PATH = (window.__DOCBOOT_BASE__ || '/').replace(/\/$/, '') + '/';
+
+  function resolveBase(path) {
+    if (!path) return '';
+    if (
+      path.indexOf('://') !== -1 ||
+      path.indexOf('//') === 0 ||
+      path.indexOf('mailto:') === 0 ||
+      path.indexOf('tel:') === 0 ||
+      path.indexOf('#') === 0 ||
+      path.indexOf('data:') === 0
+    ) {
+      return path;
+    }
+    if (path === '/' || path === '') return BASE_PATH;
+    var clean = path.replace(/^\/+/, '');
+    return BASE_PATH + clean;
+  }
+
   // --- 1. Theme & Color Palette Management ---
   var themeInitialized = false;
 
@@ -362,7 +381,7 @@
     var searchOptions = window.__DOCBOOT_SEARCH_CONFIG__ || window.__EUIX_SEARCH_CONFIG__ || {};
 
     searchLoadingPromise = Promise.all([
-      import('/assets/search-runtime.js'),
+      import(resolveBase('/assets/search-runtime.js')),
       fetch(indexUrl).then(function(res) {
         if (!res.ok) throw new Error('Failed to fetch search index: ' + res.status);
         return res.json();
@@ -493,7 +512,7 @@
           ? 'bg-accent/10 border-accent/40 text-foreground ring-1 ring-accent/30'
           : 'hover:bg-muted/60 text-foreground/90 border-transparent';
 
-        html += '<a href="' + item.route + '" class="search-result-item flex items-center justify-between p-3 rounded-lg border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
+        html += '<a href="' + resolveBase(item.route) + '" class="search-result-item flex items-center justify-between p-3 rounded-lg border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
         html += '<div class="flex-1 min-w-0 pr-3">';
         html += '<div class="font-medium text-foreground truncate">' + escapeHtml(item.title) + '</div>';
         if (item.section) {
@@ -661,7 +680,7 @@
 
     // Load local mermaid.min.js script
     var script = document.createElement('script');
-    script.src = '/assets/mermaid.min.js';
+    script.src = resolveBase('/assets/mermaid.min.js');
     script.onload = function() {
       if (window.mermaid) {
         renderAllWith(window.mermaid);

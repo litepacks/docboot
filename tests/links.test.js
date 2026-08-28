@@ -58,3 +58,18 @@ test('parseMarkdown resolves markdown links accurately in rendered HTML', () => 
   assert.match(parsed.html, /href="\/concepts\/architecture#c4"/);
   assert.match(parsed.html, /href="https:\/\/google\.com"/);
 });
+
+test('normalizeMarkdownLink and parseMarkdown respect base path for sub-directory hosting', () => {
+  assert.strictEqual(
+    normalizeMarkdownLink('./installation.md', 'getting-started/index.md', '/docboot/'),
+    '/docboot/getting-started/installation'
+  );
+  assert.strictEqual(
+    normalizeMarkdownLink('../README.md', 'getting-started/first-app.md', '/docboot/'),
+    '/docboot/'
+  );
+
+  const rawMd = `[Installation Guide](./installation.md)`;
+  const parsed = parseMarkdown(rawMd, { relativePath: 'getting-started/first-app.md', base: '/docboot/' });
+  assert.match(parsed.html, /href="\/docboot\/getting-started\/installation"/);
+});

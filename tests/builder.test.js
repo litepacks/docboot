@@ -102,3 +102,26 @@ test('SiteBuilder generates CNAME file when customDomain is configured', async (
 
   fs.rmSync(config.outDir, { recursive: true, force: true });
 });
+
+test('SiteBuilder renders HTML with custom base path', async () => {
+  const rootDir = process.cwd();
+  const config = await loadConfig(rootDir, {
+    docs: './docs',
+    out: './dist_base_test',
+    base: '/docboot/',
+    clean: true
+  });
+
+  const builder = new SiteBuilder(config);
+  await builder.build({ isDev: false });
+
+  const indexHtml = fs.readFileSync(path.join(config.outDir, 'index.html'), 'utf-8');
+  assert.match(indexHtml, /href="\/docboot\/assets\/docs\.css"/);
+  assert.match(indexHtml, /src="\/docboot\/assets\/docs\.js"/);
+  assert.match(indexHtml, /href="\/docboot\/favicon\.svg"/);
+  assert.match(indexHtml, /href="\/docboot\/manifest\.webmanifest"/);
+  assert.match(indexHtml, /__DOCBOOT_BASE__ = "\/docboot\/"/);
+  assert.match(indexHtml, /href="\/docboot\/guide\/installation"/);
+
+  fs.rmSync(config.outDir, { recursive: true, force: true });
+});
