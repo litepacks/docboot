@@ -1,0 +1,42 @@
+{
+  "name": "docboot",
+  "version": "0.1.1",
+  "description": "Ultra-fast zero-config Markdown documentation generator with local client search, soft SPA navigation, and modern developer aesthetics",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "docboot": "./bin/docboot.js"
+  },
+  "scripts": {
+    "dev": "node ./bin/docboot.js dev ./docs",
+    "build": "node ./bin/docboot.js build ./docs",
+    "serve": "node ./bin/docboot.js serve ./dist",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "keywords": [
+    "docboot",
+    "docs",
+    "documentation",
+    "markdown",
+    "static-site-generator",
+    "cli",
+    "tailwind",
+    "minisearch"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "marked": "^15.0.7",
+    "mermaid": "^11.17.2",
+    "minisearch": "^7.2.0",
+    "open": "^10.1.0",
+    "picocolors": "^1.1.1",
+    "postcss": "^8.5.26",
+    "prismjs": "^1.29.0",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

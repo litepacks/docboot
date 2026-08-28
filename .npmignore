@@ -1,0 +1,9 @@
+.git
+.github
+.docboot
+.euix-docs
+scratch
+dist*
+tests
+node_modules
+*.log

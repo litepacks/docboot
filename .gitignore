@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist_test/
+.docboot/
+.docup/
+.cache/
+.DS_Store
+*.log
