@@ -16,6 +16,7 @@ import { hashString, hashObject } from '../cache/hasher.js';
 import { escapeHtml } from '../markdown/highlighter.js';
 import { renderNotFoundPage } from '../renderer/not-found.js';
 import { withBase } from '../config/index.js';
+import { AssetGenerator } from '../assets/generator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -314,7 +315,13 @@ export class SiteBuilder {
     fs.writeFileSync(path.join(assetsDir, 'search-index.json'), searchJsonPayload, 'utf-8');
     fs.writeFileSync(path.join(this.config.outDir, 'search.json'), searchJsonPayload, 'utf-8');
 
-    // Copy Public Directory Assets (e.g. favicon.svg, images)
+    // Generate PWA assets if enabled
+    if (this.config.pwa) {
+      const generator = new AssetGenerator(this.config, this.logger);
+      await generator.generate('pwa');
+    }
+
+    // Copy Public Directory Assets (e.g. favicon.svg, manifest, sw.js, images)
     const publicDir = path.join(this.config.rootDir, 'public');
     if (fs.existsSync(publicDir)) {
       copyDirectoryRecursive(publicDir, this.config.outDir);

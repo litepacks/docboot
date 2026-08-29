@@ -19,5 +19,6 @@ export default {
     fuzzy: 0.2,
     prefix: true,
     maxResults: 10
-  }
+  },
+  pwa: true
 };
