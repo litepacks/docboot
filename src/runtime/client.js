@@ -1079,26 +1079,64 @@
     }, 120);
   }
 
+  var prefetchQueue = new Set();
+  var prefetchObserver = null;
+
   function prefetchPage(url) {
-    if (!url || pageCache.has(url)) return;
-    fetch(url)
-      .then(function(res) {
-        if (!res.ok) throw new Error('Prefetch error');
-        return res.text();
-      })
-      .then(function(html) { pageCache.set(url, html); })
-      .catch(function() {});
+    if (!url || pageCache.has(url) || prefetchQueue.has(url)) return;
+    prefetchQueue.add(url);
+
+    try {
+      fetch(url, { priority: 'low' })
+        .then(function(res) {
+          if (!res.ok) throw new Error('Prefetch error');
+          return res.text();
+        })
+        .then(function(html) {
+          pageCache.set(url, html);
+          prefetchQueue.delete(url);
+        })
+        .catch(function() {
+          prefetchQueue.delete(url);
+        });
+    } catch (e) {
+      prefetchQueue.delete(url);
+    }
   }
 
   function preloadAllVisibleLinks() {
-    var idleCallback = window.requestIdleCallback || function(cb) { setTimeout(cb, 100); };
-    idleCallback(function() {
-      document.querySelectorAll('aside nav a, main a[href^="/"]').forEach(function(a) {
-        var href = a.getAttribute('href');
-        if (href && href.startsWith('/') && !href.startsWith('//') && !href.includes(':')) {
-          prefetchPage(href.split('#')[0]);
+    if (!('IntersectionObserver' in window)) {
+      var idleCallback = window.requestIdleCallback || function(cb) { setTimeout(cb, 100); };
+      idleCallback(function() {
+        document.querySelectorAll('aside nav a, main a[href^="/"]').forEach(function(a) {
+          var href = a.getAttribute('href');
+          if (href && href.startsWith('/') && !href.startsWith('//') && !href.includes(':')) {
+            prefetchPage(href.split('#')[0]);
+          }
+        });
+      });
+      return;
+    }
+
+    if (prefetchObserver) {
+      prefetchObserver.disconnect();
+    }
+
+    prefetchObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var a = entry.target;
+          var href = a.getAttribute('href');
+          if (href && href.startsWith('/') && !href.startsWith('//') && !href.includes(':')) {
+            prefetchPage(href.split('#')[0]);
+          }
+          prefetchObserver.unobserve(a);
         }
       });
+    }, { rootMargin: '200px 0px' });
+
+    document.querySelectorAll('aside nav a, main a[href^="/"]').forEach(function(a) {
+      prefetchObserver.observe(a);
     });
   }
 
@@ -1171,7 +1209,7 @@
 
     startProgress();
 
-    function applyNewPageHtml(htmlString) {
+    function performDomSwap(htmlString) {
       // 5x faster template extraction than DOMParser
       var tpl = document.createElement('template');
       tpl.innerHTML = htmlString;
@@ -1221,6 +1259,16 @@
           a.className = 'block px-3 py-1.5 rounded-lg text-[13px] transition-all text-muted-foreground hover:text-foreground hover:bg-muted/60 font-medium';
         }
       });
+    }
+
+    function applyNewPageHtml(htmlString) {
+      if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.startViewTransition(function() {
+          performDomSwap(htmlString);
+        });
+      } else {
+        performDomSwap(htmlString);
+      }
 
       if (push) {
         history.pushState(null, '', fullTargetUrl);
@@ -1244,6 +1292,7 @@
 
       // Lazy re-initialization only if components exist on new page
       initTocScrollSpy();
+      var currentMain = document.querySelector('main');
       if (currentMain && currentMain.querySelector('.docboot-mermaid-wrapper')) {
         initMermaid(false);
       }
