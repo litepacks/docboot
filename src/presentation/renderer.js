@@ -58,7 +58,11 @@ export function renderPresentation(deck, options = {}) {
         id="${slide.id}"
         class="docboot-slide${activeClass}${layoutClass}${customClass}"
         data-index="${slide.index}"
-        data-title="${escapeHtml(slide.title || `Slide ${slide.index}`)}"
+        data-h="${slide.hIndex}"
+        data-v="${slide.vIndex}"
+        data-v-count="${slide.vCount}"
+        data-display-index="${slide.displayIndex}"
+        data-title="${escapeHtml(slide.title || `Slide ${slide.displayIndex}`)}"
         data-notes="${escapeHtml(slide.notes || '')}"
         aria-hidden="${isFirst ? 'false' : 'true'}"
         ${styleAttr}
@@ -72,8 +76,8 @@ export function renderPresentation(deck, options = {}) {
   const overviewCardsHtml = deck.slides.map((slide) => {
     return `
       <div class="docboot-overview-card" data-jump-slide="${slide.index}">
-        <span class="docboot-overview-card-badge">#${slide.index}</span>
-        <div class="docboot-overview-card-title">${escapeHtml(slide.title || `Slide ${slide.index}`)}</div>
+        <span class="docboot-overview-card-badge">#${slide.displayIndex}</span>
+        <div class="docboot-overview-card-title">${escapeHtml(slide.title || `Slide ${slide.displayIndex}`)}</div>
       </div>
     `.trim();
   }).join('\n');
@@ -101,6 +105,7 @@ export function renderPresentation(deck, options = {}) {
     <div class="docboot-stage-glow"></div>
     <div class="docboot-slide-stage">
       ${slidesHtml}
+      <div id="docboot-vertical-nav" class="docboot-vertical-nav" style="display:none;" aria-label="Vertical Slide Navigation"></div>
       ${deck.progress ? '<div id="docboot-presentation-progress" class="docboot-progress-bar" style="width: 0%;"></div>' : ''}
     </div>
 

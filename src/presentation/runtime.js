@@ -1,6 +1,7 @@
 /**
  * Docboot Presentation Client Runtime (<4KB Zero-dependency)
- * Handles slide navigation, keyboard shortcuts, touch gestures, URL hash sync,
+ * Handles 2D slide navigation (horizontal chapters + vertical sub-slides),
+ * smooth slide scrolling, keyboard shortcuts, touch gestures, URL hash sync (#h.v),
  * fullscreen mode, presenter view, slide overview grid, shortcuts cheat-sheet,
  * local timer, and live reload.
  */
@@ -23,6 +24,7 @@
 
   var progressBar = document.getElementById('docboot-presentation-progress');
   var slideCounter = document.getElementById('docboot-presentation-counter');
+  var verticalNav = document.getElementById('docboot-vertical-nav');
   var presenterView = document.getElementById('docboot-presenter-view');
   var overviewModal = document.getElementById('docboot-overview-modal');
   var helpModal = document.getElementById('docboot-help-modal');
@@ -33,9 +35,24 @@
   var presenterTimer = document.getElementById('docboot-presenter-timer-display');
   var presenterCounter = document.getElementById('docboot-presenter-counter-display');
 
-  // --- 1. URL Hash Resolution ---
+  // --- 1. URL Hash Resolution (#1 or #1.2) ---
   function getSlideFromHash() {
-    var hash = window.location.hash.replace(/^#/, '');
+    var hash = window.location.hash.replace(/^#/, '').trim();
+    if (!hash) return 1;
+
+    // Check h.v notation (e.g. 2.1, 2.2)
+    if (hash.includes('.')) {
+      var parts = hash.split('.');
+      var h = parseInt(parts[0], 10);
+      var v = parseInt(parts[1], 10);
+      for (var i = 0; i < slides.length; i++) {
+        var el = slides[i];
+        if (parseInt(el.getAttribute('data-h'), 10) === h && parseInt(el.getAttribute('data-v'), 10) === v) {
+          return i + 1;
+        }
+      }
+    }
+
     var parsed = parseInt(hash, 10);
     if (!isNaN(parsed) && parsed >= 1 && parsed <= totalSlides) {
       return parsed;
@@ -43,12 +60,26 @@
     return 1;
   }
 
-  // --- 2. Slide Navigation ---
-  function updateSlide(targetIndex, pushHistory) {
+  // --- 2. 2D Navigation Engine ---
+  function getSlideMeta(index) {
+    var el = slides[index - 1];
+    if (!el) return null;
+    return {
+      index: index,
+      h: parseInt(el.getAttribute('data-h') || index, 10),
+      v: parseInt(el.getAttribute('data-v') || 1, 10),
+      vCount: parseInt(el.getAttribute('data-v-count') || 1, 10),
+      displayIndex: el.getAttribute('data-display-index') || ('' + index),
+      el: el
+    };
+  }
+
+  function updateSlide(targetIndex, pushHistory, direction) {
     if (targetIndex < 1) targetIndex = 1;
     if (targetIndex > totalSlides) targetIndex = totalSlides;
 
     currentSlide = targetIndex;
+    var currentMeta = getSlideMeta(currentSlide);
 
     // Update active slide class
     for (var i = 0; i < slides.length; i++) {
@@ -56,9 +87,34 @@
       if (i + 1 === currentSlide) {
         slide.classList.add('active');
         slide.setAttribute('aria-hidden', 'false');
+        slide.scrollTop = 0; // Reset scroll position on new slide
+
+        if (direction === 'down') {
+          slide.classList.add('slide-v-enter-down');
+          setTimeout(function (s) { s.classList.remove('slide-v-enter-down'); }, 250, slide);
+        } else if (direction === 'up') {
+          slide.classList.add('slide-v-enter-up');
+          setTimeout(function (s) { s.classList.remove('slide-v-enter-up'); }, 250, slide);
+        }
       } else {
         slide.classList.remove('active');
         slide.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    // Update Vertical Navigation Indicator Dots
+    if (verticalNav) {
+      if (currentMeta && currentMeta.vCount > 1) {
+        verticalNav.style.display = 'flex';
+        var dotsHtml = '';
+        for (var v = 1; v <= currentMeta.vCount; v++) {
+          var isActive = v === currentMeta.v;
+          dotsHtml += '<button class="docboot-vdot' + (isActive ? ' active' : '') + '" data-jump-v="' + v + '" aria-label="Vertical sub-slide ' + v + '"></button>';
+        }
+        verticalNav.innerHTML = dotsHtml;
+      } else {
+        verticalNav.style.display = 'none';
+        verticalNav.innerHTML = '';
       }
     }
 
@@ -81,19 +137,109 @@
     }
 
     // Update slide counter
-    if (slideCounter) {
-      slideCounter.textContent = currentSlide + ' / ' + totalSlides;
+    if (slideCounter && currentMeta) {
+      slideCounter.textContent = currentMeta.displayIndex + ' / ' + totalSlides;
     }
 
     // Update URL hash
-    if (pushHistory !== false) {
-      if (window.location.hash !== '#' + currentSlide) {
-        history.pushState(null, '', '#' + currentSlide);
+    if (pushHistory !== false && currentMeta) {
+      var targetHash = '#' + currentMeta.displayIndex;
+      if (window.location.hash !== targetHash) {
+        history.pushState(null, '', targetHash);
       }
     }
 
     // Update Presenter View if active
     updatePresenterView();
+  }
+
+  // --- 3. Directional Navigation (Horizontal + Vertical 2D Grid) ---
+  function nextHorizontal() {
+    var cur = getSlideMeta(currentSlide);
+    if (!cur) return;
+    // Find first slide with h > cur.h
+    for (var i = 0; i < slides.length; i++) {
+      var meta = getSlideMeta(i + 1);
+      if (meta && meta.h > cur.h) {
+        updateSlide(meta.index);
+        return;
+      }
+    }
+    // If no higher h, go to last slide
+    if (currentSlide < totalSlides) {
+      updateSlide(currentSlide + 1);
+    }
+  }
+
+  function prevHorizontal() {
+    var cur = getSlideMeta(currentSlide);
+    if (!cur) return;
+    // Find first slide of previous horizontal group (h - 1)
+    for (var i = slides.length - 1; i >= 0; i--) {
+      var meta = getSlideMeta(i + 1);
+      if (meta && meta.h === cur.h - 1 && meta.v === 1) {
+        updateSlide(meta.index);
+        return;
+      }
+    }
+    // If no previous h, go to first slide
+    if (currentSlide > 1) {
+      updateSlide(currentSlide - 1);
+    }
+  }
+
+  function nextVertical() {
+    var cur = getSlideMeta(currentSlide);
+    var curSlideEl = slides[currentSlide - 1];
+
+    // 1. If slide content overflows, scroll down smoothly first
+    if (curSlideEl && (curSlideEl.scrollTop + curSlideEl.clientHeight < curSlideEl.scrollHeight - 30)) {
+      curSlideEl.scrollBy({ top: 260, behavior: 'smooth' });
+      return;
+    }
+
+    // 2. If next vertical sub-slide exists in current horizontal group
+    if (cur && cur.v < cur.vCount) {
+      for (var i = 0; i < slides.length; i++) {
+        var meta = getSlideMeta(i + 1);
+        if (meta && meta.h === cur.h && meta.v === cur.v + 1) {
+          updateSlide(meta.index, true, 'down');
+          return;
+        }
+      }
+    }
+
+    // 3. Fallback: sequential next
+    if (currentSlide < totalSlides) {
+      updateSlide(currentSlide + 1, true, 'down');
+    }
+  }
+
+  function prevVertical() {
+    var cur = getSlideMeta(currentSlide);
+    var curSlideEl = slides[currentSlide - 1];
+
+    // 1. If slide is scrolled down, scroll up smoothly first
+    if (curSlideEl && curSlideEl.scrollTop > 30) {
+      curSlideEl.scrollBy({ top: -260, behavior: 'smooth' });
+      return;
+    }
+
+    // 2. If prev vertical sub-slide exists in current horizontal group
+    if (cur && cur.v > 1) {
+      for (var i = 0; i < slides.length; i++) {
+        var meta = getSlideMeta(i + 1);
+        if (meta && meta.h === cur.h && meta.v === cur.v - 1) {
+          updateSlide(meta.index, true, 'up');
+          return;
+        }
+      }
+    }
+
+    // 3. Fallback: sequential prev
+    if (currentSlide > 1) {
+      updateSlide(currentSlide - 1, true, 'up');
+    }
   }
 
   function nextSlide() {
@@ -116,7 +262,7 @@
     updateSlide(totalSlides);
   }
 
-  // --- 3. Overview Grid & Help Modals ---
+  // --- 4. Overview Grid & Help Modals ---
   function toggleOverview() {
     isOverviewOpen = !isOverviewOpen;
     if (overviewModal) {
@@ -139,7 +285,7 @@
     }
   }
 
-  // --- 4. Fullscreen Controller ---
+  // --- 5. Fullscreen Controller ---
   function toggleFullscreen() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
       var el = document.documentElement;
@@ -157,12 +303,13 @@
     }
   }
 
-  // --- 5. Presenter Mode & Timer ---
+  // --- 6. Presenter Mode & Timer ---
   function updatePresenterView() {
     if (!presenterView) return;
 
     var curSlideEl = slides[currentSlide - 1];
     var nextSlideEl = slides[currentSlide] || null;
+    var curMeta = getSlideMeta(currentSlide);
 
     if (presenterCurrent && curSlideEl) {
       presenterCurrent.innerHTML = curSlideEl.innerHTML;
@@ -181,8 +328,8 @@
       presenterNotes.innerHTML = notes ? notes.replace(/\n/g, '<br>') : '';
     }
 
-    if (presenterCounter) {
-      presenterCounter.textContent = currentSlide + ' / ' + totalSlides;
+    if (presenterCounter && curMeta) {
+      presenterCounter.textContent = curMeta.displayIndex + ' / ' + totalSlides;
     }
   }
 
@@ -229,7 +376,7 @@
     }
   }
 
-  // --- 6. Theme Switcher ---
+  // --- 7. Theme Switcher ---
   function toggleTheme() {
     var html = document.documentElement;
     var isDark = html.classList.contains('dark');
@@ -242,7 +389,7 @@
     }
   }
 
-  // --- 7. Event Listeners ---
+  // --- 8. Event Listeners ---
   document.addEventListener('keydown', function (e) {
     // Ignore input fields
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
@@ -251,26 +398,48 @@
 
     switch (e.key) {
       case 'ArrowRight':
-      case 'ArrowDown':
-      case 'PageDown':
-      case ' ':
-      case 'n':
-      case 'N':
       case 'l':
       case 'L':
+        e.preventDefault();
+        nextHorizontal();
+        break;
+
+      case 'ArrowLeft':
+      case 'h':
+      case 'H':
+        e.preventDefault();
+        prevHorizontal();
+        break;
+
+      case 'ArrowDown':
+      case 'j':
+      case 'J':
+        e.preventDefault();
+        nextVertical();
+        break;
+
+      case 'ArrowUp':
+      case 'k':
+      case 'K':
+        e.preventDefault();
+        prevVertical();
+        break;
+
+      case ' ':
+      case 'PageDown':
+      case 'n':
+      case 'N':
         e.preventDefault();
         nextSlide();
         break;
 
-      case 'ArrowLeft':
-      case 'ArrowUp':
       case 'PageUp':
-      case 'h':
-      case 'H':
-      case 'k':
-      case 'K':
-        e.preventDefault();
-        prevSlide();
+      case 'p':
+      case 'P':
+        if (!e.metaKey && !e.ctrlKey) {
+          e.preventDefault();
+          togglePresenter();
+        }
         break;
 
       case 'Home':
@@ -300,12 +469,6 @@
       case 'F':
         e.preventDefault();
         toggleFullscreen();
-        break;
-
-      case 'p':
-      case 'P':
-        e.preventDefault();
-        togglePresenter();
         break;
 
       case 't':
@@ -351,9 +514,15 @@
 
       if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
         if (diffX < 0) {
-          nextSlide();
+          nextHorizontal();
         } else {
-          prevSlide();
+          prevHorizontal();
+        }
+      } else if (Math.abs(diffY) > 40) {
+        if (diffY < 0) {
+          nextVertical();
+        } else {
+          prevVertical();
         }
       }
     }
@@ -380,6 +549,26 @@
 
   var themeBtn = document.getElementById('docboot-btn-theme');
   if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+
+  // Vertical Dot Indicator Jump Clicks
+  if (verticalNav) {
+    verticalNav.addEventListener('click', function (e) {
+      var dot = e.target.closest('[data-jump-v]');
+      if (dot) {
+        var targetV = parseInt(dot.getAttribute('data-jump-v'), 10);
+        var cur = getSlideMeta(currentSlide);
+        if (cur && !isNaN(targetV)) {
+          for (var i = 0; i < slides.length; i++) {
+            var meta = getSlideMeta(i + 1);
+            if (meta && meta.h === cur.h && meta.v === targetV) {
+              updateSlide(meta.index);
+              return;
+            }
+          }
+        }
+      }
+    });
+  }
 
   // Overview Jump Clicks
   if (overviewModal) {
@@ -431,7 +620,7 @@
     });
   }
 
-  // --- 8. Live Reload (SSE) ---
+  // --- 9. Live Reload (SSE) ---
   if (window.EventSource) {
     var eventSource = new EventSource('/__docboot_reload');
     eventSource.onmessage = function (e) {
@@ -441,7 +630,7 @@
     };
   }
 
-  // --- 9. Initialize ---
+  // --- 10. Initialize ---
   var urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('presenter') === '1' || urlParams.get('presenter') === 'true') {
     togglePresenter();

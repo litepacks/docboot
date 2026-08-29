@@ -34,6 +34,62 @@ const a = 1;
   assert.ok(slides[2].rawContent.includes('Slide 3 Code'));
 });
 
+test('Presentation: splitSlides handles vertical sub-slides via (--) and :::vslide', () => {
+  const md = `
+# Topic 1 Main
+Horizontal slide 1
+
+--
+
+## Topic 1 Sub-slide A
+Vertical sub-slide 1.2
+
+--
+
+## Topic 1 Sub-slide B
+Vertical sub-slide 1.3
+
+---
+
+# Topic 2 Main
+Horizontal slide 2
+
+:::vslide
+## Topic 2 Sub-slide A
+Vertical sub-slide 2.2
+:::
+`.trim();
+
+  const slides = splitSlides(md);
+  assert.strictEqual(slides.length, 5);
+
+  // Topic 1
+  assert.strictEqual(slides[0].hIndex, 1);
+  assert.strictEqual(slides[0].vIndex, 1);
+  assert.strictEqual(slides[0].vCount, 3);
+  assert.strictEqual(slides[0].rawContent.includes('Topic 1 Main'), true);
+
+  assert.strictEqual(slides[1].hIndex, 1);
+  assert.strictEqual(slides[1].vIndex, 2);
+  assert.strictEqual(slides[1].vCount, 3);
+  assert.strictEqual(slides[1].rawContent.includes('Topic 1 Sub-slide A'), true);
+
+  assert.strictEqual(slides[2].hIndex, 1);
+  assert.strictEqual(slides[2].vIndex, 3);
+  assert.strictEqual(slides[2].vCount, 3);
+
+  // Topic 2
+  assert.strictEqual(slides[3].hIndex, 2);
+  assert.strictEqual(slides[3].vIndex, 1);
+  assert.strictEqual(slides[3].vCount, 2);
+  assert.strictEqual(slides[3].rawContent.includes('Topic 2 Main'), true);
+
+  assert.strictEqual(slides[4].hIndex, 2);
+  assert.strictEqual(slides[4].vIndex, 2);
+  assert.strictEqual(slides[4].vCount, 2);
+  assert.strictEqual(slides[4].rawContent.includes('Topic 2 Sub-slide A'), true);
+});
+
 test('Presentation: splitSlides ignores horizontal rules inside code blocks', () => {
   const md = `
 # Slide 1

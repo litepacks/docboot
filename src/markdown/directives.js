@@ -114,7 +114,7 @@ function transformDirectiveBlock(name, rawArgs, body, config) {
   }
 
   // 9. Slide Directive (Docs mode fallback: renders content as section)
-  if (type === 'slide') {
+  if (type === 'slide' || type === 'vslide' || type === 'subslide') {
     const layout = args.layout || 'default';
     const bgAttr = args.background ? ` style="background-image: url('${args.background}'); background-size: cover;"` : '';
     const customClass = args.class || '';
