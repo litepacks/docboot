@@ -1033,8 +1033,21 @@
 
   function navigateTo(url, push) {
     if (push === undefined) push = true;
+
+    // 1. Direct in-page hash jump (e.g. clicking TOC or anchor links)
+    if (typeof url === 'string' && url.startsWith('#')) {
+      var fullTargetUrl = window.location.pathname + window.location.search + url;
+      if (push) {
+        history.pushState(null, '', fullTargetUrl);
+      }
+      var el = getElementByHash(url);
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
+    // 2. Resolve URL against base and current origin
     var resolvedUrl = resolveBase(url);
-    var targetUrl = new URL(resolvedUrl, window.location.origin);
+    var targetUrl = new URL(resolvedUrl, window.location.href);
     if (targetUrl.origin !== window.location.origin) {
       window.location.href = url;
       return;
