@@ -125,9 +125,20 @@ export class Doctor {
 
         totalLinks++;
         const [targetPath, hash] = href.split('#');
-        const resolvedPath = targetPath === '' ? page.route : targetPath;
+        const base = (this.config.base || '').replace(/\/$/, '');
+        let cleanTargetPath = targetPath;
+        if (base && base !== '' && cleanTargetPath.startsWith(base)) {
+          cleanTargetPath = cleanTargetPath.slice(base.length) || '/';
+        }
+        if (cleanTargetPath !== '' && !validRoutes.has(cleanTargetPath)) {
+          const stripped = cleanTargetPath.replace(/^\/[^/]+/, '');
+          if (stripped && validRoutes.has(stripped)) {
+            cleanTargetPath = stripped;
+          }
+        }
+        const resolvedPath = cleanTargetPath === '' ? page.route : cleanTargetPath;
 
-        if (targetPath !== '' && !validRoutes.has(targetPath)) {
+        if (cleanTargetPath !== '' && !validRoutes.has(cleanTargetPath)) {
           errors.push({
             type: 'Broken Internal Link',
             message: `${page.relativePath} → ${pc.red(href)} (Target route not found)`
