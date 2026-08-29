@@ -1,3 +1,5 @@
+import './polyfills.js';
+
 export { loadConfig } from './config/index.js';
 export { parseMarkdown } from './markdown/parser.js';
 export { SiteBuilder } from './compiler/builder.js';

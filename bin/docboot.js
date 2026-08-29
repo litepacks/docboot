@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import '../src/polyfills.js';
 import { parseArgs } from '../src/cli/args.js';
 import { runCommand } from '../src/cli/commands.js';
 
