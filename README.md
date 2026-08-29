@@ -195,17 +195,29 @@ export default {
 
 Explore the full documentation site at **[https://litepacks.github.io/docboot/](https://litepacks.github.io/docboot/)**:
 
-- [Why Docboot?](https://litepacks.github.io/docboot/getting-started/why-docboot)
-- [Project Structure & Routing](https://litepacks.github.io/docboot/getting-started/project-structure)
-- [Rich Content Primitives](https://litepacks.github.io/docboot/guide/rich-content)
-- [Local Search Architecture](https://litepacks.github.io/docboot/guide/search)
-- [Themes & Customization](https://litepacks.github.io/docboot/guide/themes)
-- [Docboot Doctor](https://litepacks.github.io/docboot/tooling/doctor)
-- [GitHub Pages Deployment](https://litepacks.github.io/docboot/tooling/github-pages)
-- [CLI Reference](https://litepacks.github.io/docboot/reference/cli)
-- [Configuration Reference](https://litepacks.github.io/docboot/reference/configuration)
-- [Architecture & Runtime](https://litepacks.github.io/docboot/advanced/architecture)
-- [Benchmarks & Performance](https://litepacks.github.io/docboot/advanced/benchmarks)
+- **Getting Started**:
+  - [Quick Start](https://litepacks.github.io/docboot/getting-started/quick-start)
+  - [Why Docboot?](https://litepacks.github.io/docboot/getting-started/why-docboot)
+  - [Project Structure & Routing](https://litepacks.github.io/docboot/getting-started/project-structure)
+- **Guide**:
+  - [Installation & Setup](https://litepacks.github.io/docboot/guide/installation)
+  - [Configuration](https://litepacks.github.io/docboot/guide/configuration)
+  - [Rich Content Primitives](https://litepacks.github.io/docboot/guide/rich-content)
+  - [Local Search Architecture](https://litepacks.github.io/docboot/guide/search)
+  - [Themes & Customization](https://litepacks.github.io/docboot/guide/themes)
+  - [Mermaid Diagrams](https://litepacks.github.io/docboot/guide/diagrams)
+  - [PWA & Offline Reading](https://litepacks.github.io/docboot/guide/pwa)
+  - [Analytics Integration](https://litepacks.github.io/docboot/guide/analytics)
+- **Tooling**:
+  - [CLI Reference](https://litepacks.github.io/docboot/tooling/cli)
+  - [Docboot Doctor](https://litepacks.github.io/docboot/tooling/doctor)
+  - [Docboot Stats](https://litepacks.github.io/docboot/tooling/stats)
+  - [Incremental Build Cache](https://litepacks.github.io/docboot/tooling/build-cache)
+  - [GitHub Pages Deployment](https://litepacks.github.io/docboot/tooling/github-pages)
+  - [Production Assets](https://litepacks.github.io/docboot/tooling/assets)
+- **Advanced**:
+  - [Architecture & Runtime](https://litepacks.github.io/docboot/advanced/architecture)
+  - [Performance & Benchmarks](https://litepacks.github.io/docboot/advanced/performance)
 
 ---
 

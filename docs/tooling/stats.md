@@ -71,4 +71,4 @@ Running `docboot stats` produces a structured summary:
 
 - [Docboot Doctor](/tooling/doctor) — Validating links and assets
 - [Build Cache](/tooling/build-cache) — Cache directory mechanics
-- [Benchmarks & Performance](/advanced/benchmarks) — Measured build performance across repository sizes
+- [Benchmarks & Performance](/advanced/performance) — Measured build performance across repository sizes

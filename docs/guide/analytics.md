@@ -73,6 +73,6 @@ Docboot solves this by dispatching route change events automatically:
 
 ## Next Steps
 
-- [Production Assets](/guide/assets) — Favicons and social preview cards
+- [Production Assets](/tooling/assets) — Favicons and social preview cards
 - [Docboot Doctor](/tooling/doctor) — Validating links and assets
 - [GitHub Pages Deployment](/tooling/github-pages) — Automated deployment workflow

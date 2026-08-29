@@ -17,7 +17,7 @@ npx docboot .
 
 ## What is Docboot?
 
-Docboot is a zero-config documentation CLI that turns any directory of Markdown files into portable static HTML with local in-browser search, progressive enhancement navigation, and built-in docs tooling.
+Docboot is a zero-config documentation CLI that transforms any directory of Markdown files into portable static HTML with local in-browser search, progressive enhancement navigation, and built-in docs tooling.
 
 ### Traditional Docs vs Docboot
 
@@ -38,40 +38,42 @@ You do not create a separate documentation project, you do not install a fronten
 
 ---
 
-## Core Pillars
+## Core Highlights
 
-:::tabs group="pillars"
-::tab Zero-Config
-### Zero-Config Architecture
-
+### 1. Zero-Config Markdown
 Point Docboot at any Markdown folder. File structures and headings are automatically discovered, ordered, and transformed into clean routes, navigation sidebars, breadcrumbs, table of contents, and search indexes without configuration.
 
 ```bash
 npx docboot ./docs
 ```
-::tab Static by Default
-### Portable Static HTML
 
-Pages are compiled ahead of time into standalone HTML with build-time syntax highlighting. Markdown parsing and syntax highlighting never run on the client. Unchanged pages are served from an incremental build cache.
+### 2. Incremental Static Builds
+Pages are compiled ahead of time into standalone HTML with build-time syntax highlighting. Unchanged Markdown files are served directly from the `.docboot/` incremental cache, avoiding redundant parsing and highlighting.
 
 ```bash
 npx docboot build
 ```
-::tab Local Search
-### In-Browser Local Search
 
-No external search service and no per-query network requests. The search index is built at compile time and queried directly inside the browser using MiniSearch with section-level deep linking (`Cmd + K`).
-::tab Docs Tooling
-### Built-in Docs Tooling
+### 3. In-Browser Local Search
+No external search service and no per-query network requests. The search index is generated at compile time and queried directly inside the browser using MiniSearch with section-level deep linking (`Cmd + K`).
 
-Inspect and validate documentation health before publishing with built-in diagnostic tools:
+### 4. Built-in Tooling (`doctor` & `stats`)
+Validate and inspect documentation health before publishing:
+- `docboot doctor` validates broken links, missing images, duplicate routes, and frontmatter.
+- `docboot stats` measures word counts, code block volume, and compiled bundle weights.
+
+### 5. Rich Primitives Without MDX
+Accessible tabs, synchronized tab groups, multi-language code groups, collapsible details, and sandboxed video/demo embeds using standard Markdown directives (`:::tabs`, `:::code-group`, `:::details`).
+
+### 6. Automated GitHub Pages Setup
+Generate an official GitHub Actions workflow configured with automated base-path resolution with a single command:
 
 ```bash
-docboot doctor    # Broken links, missing images, route conflicts
-docboot stats     # Word count, bundle size, cache hit rate
-docboot setup github # Automated GitHub Pages CI workflow
+docboot setup github
 ```
-:::
+
+### 7. Themes & Theme-Aware Diagrams
+Includes 6 curated color presets (`Zinc`, `Ocean`, `Emerald`, `Violet`, `Amber`, `Rose`), reading font-size scaling, and lazy-loaded Mermaid diagrams with dark/light mode synchronization.
 
 ---
 
@@ -79,7 +81,7 @@ docboot setup github # Automated GitHub Pages CI workflow
 
 ### 1. Local Preview
 
-Start the local development server with instant live reload:
+Start the local development server with Server-Sent Events (SSE) live reload:
 
 ```bash
 cd my-project
@@ -87,9 +89,9 @@ npx docboot .
 ```
 
 ```text
-  ▲ Docboot v0.1.8
+  ▲ Docboot v0.2.0
 
-  ✔ Discovered 8 pages
+  ✔ Discovered 24 pages
   ✔ Local search index compiled
   ✔ Dev server listening at http://localhost:3000
 ```
@@ -106,15 +108,31 @@ The output in `dist/` is pure static HTML, CSS, and lightweight client assets re
 
 ---
 
-## Explore Documentation
+## Documentation Index
 
-- [Why Docboot?](/getting-started/why-docboot) — Core design philosophy and positioning
-- [Project Structure & Routing](/getting-started/project-structure) — File conventions, automatic hubs, and slug resolution
-- [Rich Content Primitives](/guide/rich-content) — Callouts, tabs, code groups, details, embeds, and lightboxes without MDX
-- [Local Search Architecture](/guide/search) — Client-side MiniSearch indexing and deep linking
-- [Themes & Customization](/guide/themes) — Color presets, typography, and visibility toggles
-- [Docboot Doctor](/tooling/doctor) — Built-in diagnostics for broken links and invalid assets
-- [Docboot Stats](/tooling/stats) — Documentation metrics and bundle analysis
-- [GitHub Pages Setup](/tooling/github-pages) — Automated CI workflow generation
-- [CLI Reference](/reference/cli) — Commands, flags, and options
-- [Architecture & Runtime](/advanced/architecture) — Build pipeline and progressive enhancement model
+- **Getting Started**:
+  - [Quick Start](/getting-started/quick-start) — Run Docboot in under a minute
+  - [Why Docboot?](/getting-started/why-docboot) — Design philosophy vs traditional docs frameworks
+  - [Project Structure & Routing](/getting-started/project-structure) — Clean routes and automatic category hubs
+
+- **Guide**:
+  - [Installation & Setup](/guide/installation) — npm, pnpm, yarn, and global usage
+  - [Configuration](/guide/configuration) — Optional configuration options
+  - [Rich Content Primitives](/guide/rich-content) — Tabs, code groups, callouts, and details
+  - [Local Search Architecture](/guide/search) — Client-side MiniSearch indexing
+  - [Themes & Customization](/guide/themes) — Color presets, typography, and controls
+  - [Mermaid Diagrams](/guide/diagrams) — Interactive flowcharts and sequence graphs
+  - [PWA & Offline Reading](/guide/pwa) — Service Worker and manifest support
+  - [Analytics Integration](/guide/analytics) — Privacy-first analytics setup
+
+- **Tooling**:
+  - [CLI Reference](/tooling/cli) — Commands, flags, and shorthand combinations
+  - [Docboot Doctor](/tooling/doctor) — Diagnostics for links, images, and routes
+  - [Docboot Stats](/tooling/stats) — Documentation metrics and bundle analysis
+  - [Incremental Build Cache](/tooling/build-cache) — Cache mechanics and invalidation
+  - [GitHub Pages Deployment](/tooling/github-pages) — Automated CI/CD deployment
+  - [Production Assets](/tooling/assets) — Favicons, OG social cards, and manifests
+
+- **Advanced**:
+  - [Architecture & Runtime](/advanced/architecture) — Build pipeline vs client runtime
+  - [Performance & Benchmarks](/advanced/performance) — Measured compilation speeds and methodology

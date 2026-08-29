@@ -1,10 +1,10 @@
 ---
-title: Production Assets Generation
+title: Production Assets
 description: Generating production favicons, social preview banners, and PWA assets with docboot generate assets.
-order: 7
+order: 6
 ---
 
-# Production Assets Generation
+# Production Assets
 
 Docboot provides a built-in asset generator to produce favicons, social sharing banners, and web app manifests without external graphics tools.
 
@@ -51,4 +51,4 @@ Any files placed in your project's `public/` directory (e.g. `public/favicon.svg
 
 - [Docboot Doctor](/tooling/doctor) — Validating broken links and missing images
 - [Docboot Stats](/tooling/stats) — Inspecting documentation bundle metrics
-- [CLI Reference](/reference/cli) — Full list of CLI commands
+- [CLI Reference](/tooling/cli) — Full list of CLI commands

@@ -64,6 +64,6 @@ Docboot websites are fully readable and functional even if JavaScript is disable
 
 ## Next Steps
 
-- [Benchmarks & Performance](/advanced/benchmarks) — Measured compilation speeds and bundle sizes
+- [Benchmarks & Performance](/advanced/performance) — Measured compilation speeds and bundle sizes
 - [Local Search Architecture](/guide/search) — Client-side search implementation
 - [Incremental Build Cache](/tooling/build-cache) — Cache mechanics and invalidation
