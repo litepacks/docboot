@@ -69,8 +69,57 @@ export function parseDirectiveArgs(rawArgs = '') {
   return args;
 }
 
+function transformDirectiveBlock(name, rawArgs, body, config) {
+  const type = name.toLowerCase();
+  const args = parseDirectiveArgs(rawArgs || '');
+
+  // 1. Standard Callouts
+  if (CALLOUT_CONFIGS[type]) {
+    return renderCallout(type, args, body);
+  }
+
+  // 2. Details / Collapse
+  if (type === 'details' || type === 'collapse') {
+    return renderDetails(args, body);
+  }
+
+  // 3. Tabs & Synced Tabs
+  if (type === 'tabs') {
+    return renderTabs(args, body);
+  }
+
+  // 4. Code Groups
+  if (type === 'code-group' || type === 'codegroup') {
+    return renderCodeGroup(args, body);
+  }
+
+  // 5. Safe Embed / iframe
+  if (type === 'embed' || type === 'iframe') {
+    return renderEmbed(args, body, config);
+  }
+
+  // 6. Explicit Image
+  if (type === 'image') {
+    return renderExplicitImage(args, body);
+  }
+
+  // 7. Image Gallery
+  if (type === 'gallery') {
+    return renderGallery(args, body);
+  }
+
+  // 8. Custom Text Size Container (::: text-sm, ::: text-lg, ::: text-xl, ::: text-xs, ::: lead)
+  if (type.startsWith('text-') || type === 'lead' || type === 'small' || type === 'large') {
+    return renderTextSizeContainer(type, args, body);
+  }
+
+  // Unknown directive - leave unchanged
+  return `:::${name}${rawArgs ? ' ' + rawArgs : ''}\n${body}\n:::`;
+}
+
 /**
- * Main directive transformer that processes all :::directive blocks.
+ * Main directive transformer that processes all :::directive blocks,
+ * respecting outer code fences so directive examples inside code blocks are preserved.
  * @param {string} markdown 
  * @param {object} config 
  * @returns {string} Transformed markdown with rich HTML components
@@ -78,56 +127,82 @@ export function parseDirectiveArgs(rawArgs = '') {
 export function processDirectives(markdown, config = {}) {
   if (!markdown || !markdown.includes(':::')) return markdown;
 
-  // Regex to match :::name [args]\n ... \n:::
-  const directiveBlockRegex = /:::([a-zA-Z0-9_-]+)(?:[ \t]+([^\r\n]+))?\r?\n([\s\S]*?)\r?\n:::/g;
+  const lines = markdown.split(/\r?\n/);
+  const resultLines = [];
+  let inCodeBlock = false;
+  let codeFenceChar = '';
+  let codeFenceLen = 0;
 
-  return markdown.replace(directiveBlockRegex, (match, name, rawArgs, body) => {
-    const type = name.toLowerCase();
-    const args = parseDirectiveArgs(rawArgs || '');
+  let inDirective = false;
+  let directiveName = '';
+  let directiveRawArgs = '';
+  let directiveBodyLines = [];
 
-    // 1. Standard Callouts
-    if (CALLOUT_CONFIGS[type]) {
-      return renderCallout(type, args, body);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trimStart();
+
+    // Check code fence (``` or ~~~)
+    const fenceMatch = trimmed.match(/^(`{3,}|~{3,})/);
+    if (fenceMatch && !inDirective) {
+      const fenceStr = fenceMatch[1];
+      const char = fenceStr[0];
+      const len = fenceStr.length;
+
+      if (!inCodeBlock) {
+        inCodeBlock = true;
+        codeFenceChar = char;
+        codeFenceLen = len;
+        resultLines.push(line);
+        continue;
+      } else if (char === codeFenceChar && len >= codeFenceLen) {
+        inCodeBlock = false;
+        codeFenceChar = '';
+        codeFenceLen = 0;
+        resultLines.push(line);
+        continue;
+      }
     }
 
-    // 2. Details / Collapse
-    if (type === 'details' || type === 'collapse') {
-      return renderDetails(args, body);
+    if (inCodeBlock) {
+      resultLines.push(line);
+      continue;
     }
 
-    // 3. Tabs & Synced Tabs
-    if (type === 'tabs') {
-      return renderTabs(args, body);
+    // Outside code blocks: check directive opening
+    if (!inDirective) {
+      const dirOpenMatch = line.match(/^:::([a-zA-Z0-9_-]+)(?:[ \t]+([^\r\n]+))?$/);
+      if (dirOpenMatch) {
+        inDirective = true;
+        directiveName = dirOpenMatch[1];
+        directiveRawArgs = dirOpenMatch[2] || '';
+        directiveBodyLines = [];
+        continue;
+      } else {
+        resultLines.push(line);
+      }
+    } else {
+      // Inside directive: check directive closing
+      if (line.trim() === ':::') {
+        inDirective = false;
+        const rendered = transformDirectiveBlock(directiveName, directiveRawArgs, directiveBodyLines.join('\n'), config);
+        resultLines.push(rendered);
+        directiveName = '';
+        directiveRawArgs = '';
+        directiveBodyLines = [];
+      } else {
+        directiveBodyLines.push(line);
+      }
     }
+  }
 
-    // 4. Code Groups
-    if (type === 'code-group' || type === 'codegroup') {
-      return renderCodeGroup(args, body);
-    }
+  // If unclosed directive at EOF, flush original lines
+  if (inDirective) {
+    resultLines.push(`:::${directiveName}${directiveRawArgs ? ' ' + directiveRawArgs : ''}`);
+    resultLines.push(...directiveBodyLines);
+  }
 
-    // 5. Safe Embed / iframe
-    if (type === 'embed' || type === 'iframe') {
-      return renderEmbed(args, body, config);
-    }
-
-    // 6. Explicit Image
-    if (type === 'image') {
-      return renderExplicitImage(args, body);
-    }
-
-    // 7. Image Gallery
-    if (type === 'gallery') {
-      return renderGallery(args, body);
-    }
-
-    // 8. Custom Text Size Container (::: text-sm, ::: text-lg, ::: text-xl, ::: text-xs, ::: lead)
-    if (type.startsWith('text-') || type === 'lead' || type === 'small' || type === 'large') {
-      return renderTextSizeContainer(type, args, body);
-    }
-
-    // Unknown directive - leave unchanged
-    return match;
-  });
+  return resultLines.join('\n');
 }
 
 function renderTextSizeContainer(type, args, body) {

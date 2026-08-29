@@ -139,3 +139,10 @@ test('processDirectives handles custom text size containers', () => {
   assert.match(html, /text-lg sm:text-xl/);
   assert.match(html, /Lead introductory paragraph\./);
 });
+
+test('processDirectives ignores directives inside code blocks', () => {
+  const md = `\`\`\`markdown\n:::details Custom Title\nContent visible when expanded.\n:::\n\`\`\``;
+  const result = processDirectives(md);
+  assert.strictEqual(result, md);
+  assert.doesNotMatch(result, /<details class="docboot-details/);
+});
