@@ -89,6 +89,19 @@
         slide.setAttribute('aria-hidden', 'false');
         slide.scrollTop = 0; // Reset scroll position on new slide
 
+        // Auto-scale slide content if slightly overflowing to fit perfectly
+        slide.style.transform = '';
+        requestAnimationFrame(function () {
+          if (slide.scrollHeight > slide.clientHeight + 10) {
+            var ratio = slide.clientHeight / slide.scrollHeight;
+            if (ratio >= 0.78) {
+              slide.style.transformOrigin = 'top left';
+              slide.style.transform = 'scale(' + (Math.floor(ratio * 96) / 100) + ')';
+              slide.style.width = (100 / ratio) + '%';
+            }
+          }
+        });
+
         if (direction === 'down') {
           slide.classList.add('slide-v-enter-down');
           setTimeout(function (s) { s.classList.remove('slide-v-enter-down'); }, 250, slide);
@@ -98,6 +111,8 @@
         }
       } else {
         slide.classList.remove('active');
+        slide.style.transform = '';
+        slide.style.width = '';
         slide.setAttribute('aria-hidden', 'true');
       }
     }

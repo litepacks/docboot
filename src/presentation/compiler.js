@@ -5,8 +5,10 @@ import { parseDirectiveArgs } from '../markdown/directives.js';
 /**
  * Splits a single horizontal block into vertical sub-slides.
  * Supports:
- * - `--` (two hyphens outside code fences)
- * - `:::vslide` / `:::subslide` directives
+ * 1. Explicit `--` (two hyphens outside code fences)
+ * 2. Explicit `:::vslide` / `:::subslide` directives
+ * 3. Automatic splitting on `### ` / `#### ` sub-headings when content is long
+ * 4. Automatic splitting before massive code blocks if the slide would overflow
  *
  * @param {string} rawContent
  * @param {object} baseArgs
@@ -20,13 +22,13 @@ export function splitVerticalSlides(rawContent = '', baseArgs = {}) {
   let codeFenceChar = '';
   let codeFenceLen = 0;
   let currentArgs = { ...baseArgs };
-  let hasVerticalSeparators = false;
+  let hasExplicitVerticalSeparators = false;
 
+  // --- Step 1: Check for explicit vertical separators (`--` or `:::vslide`) ---
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
 
-    // Track code fences
     const fenceMatch = line.match(/^(\s*)(`{3,}|~{3,})/);
     if (fenceMatch) {
       const char = fenceMatch[2][0];
@@ -41,9 +43,8 @@ export function splitVerticalSlides(rawContent = '', baseArgs = {}) {
     }
 
     if (!inCodeFence) {
-      // 1. `--` two dashes separator for vertical sub-slides
       if (trimmed === '--') {
-        hasVerticalSeparators = true;
+        hasExplicitVerticalSeparators = true;
         if (currentLines.length > 0 && currentLines.some(l => l.trim().length > 0)) {
           vSlides.push({
             rawContent: currentLines.join('\n').trim(),
@@ -55,9 +56,8 @@ export function splitVerticalSlides(rawContent = '', baseArgs = {}) {
         continue;
       }
 
-      // 2. `:::vslide` or `:::subslide` directive
       if (/^:::(?:vslide|subslide)(?:\s+(.*))?$/.test(trimmed)) {
-        hasVerticalSeparators = true;
+        hasExplicitVerticalSeparators = true;
         if (currentLines.length > 0 && currentLines.some(l => l.trim().length > 0)) {
           vSlides.push({
             rawContent: currentLines.join('\n').trim(),
@@ -81,8 +81,61 @@ export function splitVerticalSlides(rawContent = '', baseArgs = {}) {
     });
   }
 
-  if (hasVerticalSeparators && vSlides.length > 1) {
+  if (hasExplicitVerticalSeparators && vSlides.length > 1) {
     return vSlides;
+  }
+
+  // --- Step 2: Automatic Vertical Splitting for Long Sections ---
+  // If content contains subheadings (`### ` or `#### `) or exceeds comfortable single-slide height:
+  const subHeadingCount = lines.filter(l => !l.startsWith('```') && /^#{3,4}\s+/.test(l.trim())).length;
+  const nonEmptyLineCount = lines.filter(l => l.trim().length > 0).length;
+
+  if (subHeadingCount > 0 || (nonEmptyLineCount > 18 && lines.some(l => l.trim().startsWith('```')))) {
+    const autoVSlides = [];
+    let autoCurrentLines = [];
+    inCodeFence = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      const fenceMatch = line.match(/^(\s*)(`{3,}|~{3,})/);
+      if (fenceMatch) {
+        const char = fenceMatch[2][0];
+        const len = fenceMatch[2].length;
+        if (!inCodeFence) {
+          inCodeFence = true;
+          codeFenceChar = char;
+          codeFenceLen = len;
+        } else if (char === codeFenceChar && len >= codeFenceLen) {
+          inCodeFence = false;
+        }
+      }
+
+      // Split on `### ` or `#### ` sub-headings
+      if (!inCodeFence && /^#{3,4}\s+/.test(trimmed)) {
+        if (autoCurrentLines.length > 0 && autoCurrentLines.some(l => l.trim().length > 0)) {
+          autoVSlides.push({
+            rawContent: autoCurrentLines.join('\n').trim(),
+            args: { ...baseArgs }
+          });
+        }
+        autoCurrentLines = [];
+      }
+
+      autoCurrentLines.push(line);
+    }
+
+    if (autoCurrentLines.length > 0 && autoCurrentLines.some(l => l.trim().length > 0)) {
+      autoVSlides.push({
+        rawContent: autoCurrentLines.join('\n').trim(),
+        args: { ...baseArgs }
+      });
+    }
+
+    if (autoVSlides.length > 1) {
+      return autoVSlides;
+    }
   }
 
   return [{ rawContent: rawContent.trim(), args: baseArgs }];
@@ -92,7 +145,7 @@ export function splitVerticalSlides(rawContent = '', baseArgs = {}) {
  * Splits raw presentation Markdown into slide raw blocks (2D Grid: Horizontal + Vertical).
  *
  * @param {string} content Markdown body without frontmatter
- * @returns {Array<{ rawContent: string, args: object, hIndex: number, vIndex: number }>}
+ * @returns {Array<{ rawContent: string, args: object, hIndex: number, vIndex: number, vCount: number }>}
  */
 export function splitSlides(content = '') {
   const lines = content.split(/\r?\n/);
@@ -278,7 +331,7 @@ export function splitSlides(content = '') {
     horizontalBlocks.push({ rawContent: content.trim(), args: {} });
   }
 
-  // Now process 2D grid: split each horizontal block into vertical sub-slides if `--` is present
+  // Process 2D grid: split each horizontal block into vertical sub-slides (manual `--` or auto `###`)
   const finalSlides = [];
   for (let h = 0; h < horizontalBlocks.length; h++) {
     const hBlock = horizontalBlocks[h];
@@ -362,11 +415,11 @@ export function extractSplitColumns(content = '') {
  * Derives a clean slide title from its Markdown content.
  *
  * @param {string} markdown
- * @param {number} fallbackIndex
+ * @param {number|string} fallbackIndex
  * @returns {string}
  */
 export function extractSlideTitle(markdown = '', fallbackIndex = 1) {
-  const headingMatch = markdown.match(/^#{1,3}\s+(.+)$/m);
+  const headingMatch = markdown.match(/^#{1,4}\s+(.+)$/m);
   if (headingMatch) {
     return headingMatch[1].replace(/[*_`#]/g, '').trim();
   }
