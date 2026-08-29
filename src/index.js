@@ -10,3 +10,7 @@ export { scanMarkdownFiles } from './scanner/index.js';
 export { buildSidebar, buildBreadcrumbs, buildPrevNextMap } from './routes/navigation.js';
 export { buildSearchIndex } from './search/indexer.js';
 export { renderLayout } from './renderer/layout.js';
+export { compilePresentation } from './presentation/compiler.js';
+export { renderPresentation } from './presentation/renderer.js';
+export { buildPresentationStatic } from './presentation/builder.js';
+export { startPresentationServer } from './presentation/server.js';

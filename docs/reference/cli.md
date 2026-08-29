@@ -15,6 +15,8 @@ Overview of all available Docboot CLI commands, options, and shorthand flags.
 | Command | Description |
 | :--- | :--- |
 | **`docboot [dir]`** | Discovers Markdown files and starts the development server with live reload |
+| **`docboot present <file.md>`** | Starts live slide presentation mode from a Markdown file with instant SSE reload |
+| **`docboot present build <file.md>`** | Compiles presentation into a static standalone bundle in `dist-presentation/` |
 | **`docboot build [dir]`** | Compiles the documentation into static HTML and assets in `dist/` |
 | **`docboot serve [dir]`** | Serves the compiled production static directory locally |
 | **`docboot doctor [dir]`** | Diagnoses broken links, missing images, duplicate routes, and frontmatter issues |

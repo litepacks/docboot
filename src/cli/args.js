@@ -44,6 +44,8 @@ export function parseArgs(rawArgs = process.argv.slice(2)) {
     force: false,
     github: false,
     a11y: false,
+    presenter: false,
+    file: null,
     unknown: []
   };
 
@@ -63,6 +65,8 @@ export function parseArgs(rawArgs = process.argv.slice(2)) {
       flags.serve = true;
     } else if (arg === '--open') {
       flags.open = true;
+    } else if (arg === '--presenter') {
+      flags.presenter = true;
     } else if (arg === '--clean') {
       flags.clean = true;
     } else if (arg === '--no-cache') {
@@ -132,12 +136,22 @@ export function parseArgs(rawArgs = process.argv.slice(2)) {
     i++;
   }
 
-  // Determine command and target directory
+  // Determine command and target directory / file
   if (positional.length > 0) {
     const first = positional[0].toLowerCase();
     if (['dev', 'build', 'serve', 'doctor', 'stats', 'clean', 'help'].includes(first)) {
       flags.command = first;
       flags.dir = positional[1] || null;
+    } else if (first === 'present') {
+      flags.command = 'present';
+      const second = positional[1]?.toLowerCase();
+      if (second === 'build') {
+        flags.subcommand = 'build';
+        flags.file = positional[2] || 'talk.md';
+      } else {
+        flags.subcommand = 'dev';
+        flags.file = positional[1] || 'talk.md';
+      }
     } else if (first === 'generate') {
       flags.command = 'generate';
       const second = positional[1]?.toLowerCase();

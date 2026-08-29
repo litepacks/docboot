@@ -113,6 +113,29 @@ function transformDirectiveBlock(name, rawArgs, body, config) {
     return renderTextSizeContainer(type, args, body);
   }
 
+  // 9. Slide Directive (Docs mode fallback: renders content as section)
+  if (type === 'slide') {
+    const layout = args.layout || 'default';
+    const bgAttr = args.background ? ` style="background-image: url('${args.background}'); background-size: cover;"` : '';
+    const customClass = args.class || '';
+    return `<div class="docboot-slide-section docboot-slide-layout-${layout} ${customClass} my-8 py-4 border-b border-border/40"${bgAttr}>\n\n${body}\n\n</div>`;
+  }
+
+  // 10. Speaker Notes Directive (Docs mode: omit from public documentation output)
+  if (type === 'notes') {
+    return '';
+  }
+
+  // 11. Split Layout Columns (::left and ::right)
+  if (type === 'left' || type === 'right') {
+    return `<div class="docboot-col docboot-col-${type} my-4">\n\n${body}\n\n</div>`;
+  }
+
+  // 12. Presentation-only container (Docs mode: omit)
+  if (type === 'presentation') {
+    return '';
+  }
+
   // Unknown directive - leave unchanged
   return `:::${name}${rawArgs ? ' ' + rawArgs : ''}\n${body}\n:::`;
 }

@@ -149,6 +149,39 @@ export async function runCommand(flags) {
     return;
   }
 
+  if (flags.command === 'present') {
+    logger.banner(VERSION);
+    const targetFile = flags.file || 'talk.md';
+
+    if (flags.subcommand === 'build') {
+      const { buildPresentationStatic } = await import('../presentation/builder.js');
+      const outDir = flags.dir && flags.dir !== rootDir ? flags.dir : 'dist-presentation';
+      const result = await buildPresentationStatic(targetFile, { config, out: outDir });
+      logger.success(`Built presentation (${result.slideCount} slides) to: ${pc.cyan(path.relative(rootDir, result.outDir) || result.outDir)}`);
+      return;
+    }
+
+    // Default: 'present dev' mode
+    const { startPresentationServer } = await import('../presentation/server.js');
+    const { port, url, slideCount, title } = await startPresentationServer(targetFile, {
+      port: flags.port || config.port,
+      host: config.host || 'localhost',
+      open: flags.open,
+      config,
+      logger
+    });
+
+    console.log(pc.bold('  Docboot Presentation\n'));
+    console.log(`  ${pc.dim('Slides        ')} ${pc.bold(slideCount)}`);
+    console.log(`  ${pc.dim('Watching      ')} ${pc.cyan(targetFile)}`);
+    console.log(`  ${pc.dim('Local         ')} ${pc.green(pc.bold(url))}`);
+    if (flags.presenter) {
+      console.log(`  ${pc.dim('Presenter     ')} ${pc.cyan(url + '?presenter=1')}`);
+    }
+    console.log('');
+    return;
+  }
+
   if (flags.command === 'generate') {
     logger.banner(VERSION);
     const generator = new AssetGenerator(config, logger);
@@ -221,6 +254,8 @@ export function showHelp() {
   ${pc.bold('USAGE')}
     ${pc.green('$')} docboot [dir] [flags]
     ${pc.green('$')} docboot dev [dir] [flags]
+    ${pc.green('$')} docboot present <file.md> [flags]
+    ${pc.green('$')} docboot present build <file.md> [flags]
     ${pc.green('$')} docboot build [dir] [flags]
     ${pc.green('$')} docboot serve [dir] [flags]
     ${pc.green('$')} docboot doctor [dir]
@@ -231,21 +266,24 @@ export function showHelp() {
     ${pc.green('$')} docboot init [config|dir]
 
   ${pc.bold('COMMANDS')}
-    ${pc.cyan('dev')}        Start dev server with instant SSE reload (default)
-    ${pc.cyan('build')}      Build static HTML, assets & search index to dist
-    ${pc.cyan('serve')}      Preview static production build
-    ${pc.cyan('doctor')}     Validate internal links, images, routes & frontmatter health
-    ${pc.cyan('stats')}      Inspect documentation metrics, word counts & cache performance
-    ${pc.cyan('clean')}      Delete build cache directory (.docboot / .docup)
-    ${pc.cyan('generate')}   Generate production assets (favicon, Open Graph banner, PWA manifest)
-    ${pc.cyan('setup')}      Configure CI integrations (GitHub Pages workflow)
-    ${pc.cyan('init')}       Scaffold starter docboot.config.js and documentation files
+    ${pc.cyan('dev')}            Start dev server with instant SSE reload (default)
+    ${pc.cyan('present')}        Start live slide presentation mode from Markdown file
+    ${pc.cyan('present build')}  Build static presentation bundle to dist-presentation/
+    ${pc.cyan('build')}          Build static HTML, assets & search index to dist
+    ${pc.cyan('serve')}          Preview static production build
+    ${pc.cyan('doctor')}         Validate internal links, images, routes & frontmatter health
+    ${pc.cyan('stats')}          Inspect documentation metrics, word counts & cache performance
+    ${pc.cyan('clean')}          Delete build cache directory (.docboot / .docup)
+    ${pc.cyan('generate')}       Generate production assets (favicon, Open Graph banner, PWA manifest)
+    ${pc.cyan('setup')}          Configure CI integrations (GitHub Pages workflow)
+    ${pc.cyan('init')}           Scaffold starter docboot.config.js and documentation files
 
   ${pc.bold('FLAGS')}
     ${pc.yellow('-b, --build')}       Build static site
     ${pc.yellow('-s, --serve')}       Serve built static files
-    ${pc.yellow('-o, --open')}        Open site in default browser
+    ${pc.yellow('-o, --open')}        Open site or presentation in default browser
     ${pc.yellow('-p, --port <port>')} Custom port (default: 3000)
+    ${pc.yellow('--presenter')}       Open presentation directly in presenter mode
     ${pc.yellow('-c, --clean')}       Clean cache / perform clean build
     ${pc.yellow('--no-cache')}        Bypass reading and writing build cache
     ${pc.yellow('--dry-run')}         Calculate and preview changes without modifying files
@@ -258,13 +296,12 @@ export function showHelp() {
     ${pc.yellow('--version')}         Show CLI version
 
   ${pc.bold('EXAMPLES')}
+    ${pc.green('$')} docboot present talk.md
+    ${pc.green('$')} docboot present talk.md -o
+    ${pc.green('$')} docboot present build talk.md
     ${pc.green('$')} docboot init
-    ${pc.green('$')} docboot init config
-    ${pc.green('$')} docboot .
     ${pc.green('$')} docboot ./docs -o
     ${pc.green('$')} docboot build --clean
     ${pc.green('$')} docboot doctor --github
-    ${pc.green('$')} docboot setup github
-    ${pc.green('$')} docboot stats
 `);
 }
