@@ -1,7 +1,7 @@
 /**
  * Docboot Presentation Client Runtime (<4KB Zero-dependency)
- * Handles 2D slide navigation (horizontal chapters + vertical sub-slides),
- * smooth slide scrolling, keyboard shortcuts, touch gestures, URL hash sync (#h.v),
+ * Handles 2D slide navigation, slide counter pagination, smooth slide scrolling,
+ * on-demand Mermaid diagram rendering, keyboard shortcuts, touch gestures, URL hash sync,
  * fullscreen mode, presenter view, slide overview grid, shortcuts cheat-sheet,
  * local timer, and live reload.
  */
@@ -21,6 +21,7 @@
   var timerInterval = null;
   var isTimerRunning = false;
   var notesFontSize = 1.4;
+  var mermaidLoaded = false;
 
   var progressBar = document.getElementById('docboot-presentation-progress');
   var slideCounter = document.getElementById('docboot-presentation-counter');
@@ -35,7 +36,7 @@
   var presenterTimer = document.getElementById('docboot-presenter-timer-display');
   var presenterCounter = document.getElementById('docboot-presenter-counter-display');
 
-  // --- 1. URL Hash Resolution (#1 or #1.2) ---
+  // --- 1. URL Hash Resolution (#12 or #7.3) ---
   function getSlideFromHash() {
     var hash = window.location.hash.replace(/^#/, '').trim();
     if (!hash) return 1;
@@ -64,14 +65,78 @@
   function getSlideMeta(index) {
     var el = slides[index - 1];
     if (!el) return null;
+    var vCount = parseInt(el.getAttribute('data-v-count') || 1, 10);
     return {
       index: index,
       h: parseInt(el.getAttribute('data-h') || index, 10),
       v: parseInt(el.getAttribute('data-v') || 1, 10),
-      vCount: parseInt(el.getAttribute('data-v-count') || 1, 10),
+      vCount: vCount,
+      isVertical: vCount > 1,
       displayIndex: el.getAttribute('data-display-index') || ('' + index),
       el: el
     };
+  }
+
+  // --- 3. On-Demand Mermaid Diagram Renderer ---
+  function renderMermaidInSlide(slideEl) {
+    if (!slideEl) return;
+    var diagrams = Array.from(slideEl.querySelectorAll('.mermaid'));
+    if (!diagrams.length) return;
+
+    function renderAll(mermaid) {
+      var isDark = document.documentElement.classList.contains('dark');
+      try {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: isDark ? 'dark' : 'neutral',
+          securityLevel: 'loose',
+          fontFamily: 'inherit'
+        });
+
+        diagrams.forEach(async function (el, idx) {
+          var loader = el.parentElement ? el.parentElement.querySelector('.docboot-mermaid-loading') : null;
+          var rawCode = el.getAttribute('data-mermaid-src') || el.textContent || '';
+          if (!el.getAttribute('data-mermaid-src')) {
+            el.setAttribute('data-mermaid-src', rawCode);
+          }
+
+          if (rawCode) {
+            var id = 'pres-mermaid-' + currentSlide + '-' + idx + '-' + Math.random().toString(36).substring(2, 6);
+            try {
+              var res = await mermaid.render(id, rawCode);
+              el.innerHTML = res.svg;
+              el.classList.remove('hidden');
+              if (loader) loader.style.display = 'none';
+            } catch (err) {
+              if (loader) loader.style.display = 'none';
+              el.classList.remove('hidden');
+            }
+          }
+        });
+      } catch (e) {}
+    }
+
+    if (window.mermaid) {
+      renderAll(window.mermaid);
+      return;
+    }
+
+    if (!mermaidLoaded) {
+      mermaidLoaded = true;
+      import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')
+        .then(function (m) {
+          window.mermaid = m.default || m;
+          renderAll(window.mermaid);
+        })
+        .catch(function () {
+          // If offline / no cdn, fallback to revealing code blocks
+          diagrams.forEach(function (el) {
+            var loader = el.parentElement ? el.parentElement.querySelector('.docboot-mermaid-loading') : null;
+            if (loader) loader.style.display = 'none';
+            el.classList.remove('hidden');
+          });
+        });
+    }
   }
 
   function updateSlide(targetIndex, pushHistory, direction) {
@@ -109,6 +174,9 @@
           slide.classList.add('slide-v-enter-up');
           setTimeout(function (s) { s.classList.remove('slide-v-enter-up'); }, 250, slide);
         }
+
+        // Render Mermaid diagrams on active slide
+        renderMermaidInSlide(slide);
       } else {
         slide.classList.remove('active');
         slide.style.transform = '';
@@ -151,14 +219,14 @@
       progressBar.style.width = percent + '%';
     }
 
-    // Update slide counter
-    if (slideCounter && currentMeta) {
-      slideCounter.textContent = currentMeta.displayIndex + ' / ' + totalSlides;
+    // Update slide counter: clean linear pagination "12 / 16"
+    if (slideCounter) {
+      slideCounter.textContent = currentSlide + ' / ' + totalSlides;
     }
 
-    // Update URL hash
-    if (pushHistory !== false && currentMeta) {
-      var targetHash = '#' + currentMeta.displayIndex;
+    // Update URL hash: clean "#12" (or supporting back/forward)
+    if (pushHistory !== false) {
+      var targetHash = '#' + currentSlide;
       if (window.location.hash !== targetHash) {
         history.pushState(null, '', targetHash);
       }
@@ -168,11 +236,10 @@
     updatePresenterView();
   }
 
-  // --- 3. Directional Navigation (Horizontal + Vertical 2D Grid) ---
+  // --- 4. Directional Navigation (Horizontal + Vertical 2D Grid) ---
   function nextHorizontal() {
     var cur = getSlideMeta(currentSlide);
     if (!cur) return;
-    // Find first slide with h > cur.h
     for (var i = 0; i < slides.length; i++) {
       var meta = getSlideMeta(i + 1);
       if (meta && meta.h > cur.h) {
@@ -180,7 +247,6 @@
         return;
       }
     }
-    // If no higher h, go to last slide
     if (currentSlide < totalSlides) {
       updateSlide(currentSlide + 1);
     }
@@ -189,7 +255,6 @@
   function prevHorizontal() {
     var cur = getSlideMeta(currentSlide);
     if (!cur) return;
-    // Find first slide of previous horizontal group (h - 1)
     for (var i = slides.length - 1; i >= 0; i--) {
       var meta = getSlideMeta(i + 1);
       if (meta && meta.h === cur.h - 1 && meta.v === 1) {
@@ -197,7 +262,6 @@
         return;
       }
     }
-    // If no previous h, go to first slide
     if (currentSlide > 1) {
       updateSlide(currentSlide - 1);
     }
@@ -207,13 +271,11 @@
     var cur = getSlideMeta(currentSlide);
     var curSlideEl = slides[currentSlide - 1];
 
-    // 1. If slide content overflows, scroll down smoothly first
     if (curSlideEl && (curSlideEl.scrollTop + curSlideEl.clientHeight < curSlideEl.scrollHeight - 30)) {
       curSlideEl.scrollBy({ top: 260, behavior: 'smooth' });
       return;
     }
 
-    // 2. If next vertical sub-slide exists in current horizontal group
     if (cur && cur.v < cur.vCount) {
       for (var i = 0; i < slides.length; i++) {
         var meta = getSlideMeta(i + 1);
@@ -224,7 +286,6 @@
       }
     }
 
-    // 3. Fallback: sequential next
     if (currentSlide < totalSlides) {
       updateSlide(currentSlide + 1, true, 'down');
     }
@@ -234,13 +295,11 @@
     var cur = getSlideMeta(currentSlide);
     var curSlideEl = slides[currentSlide - 1];
 
-    // 1. If slide is scrolled down, scroll up smoothly first
     if (curSlideEl && curSlideEl.scrollTop > 30) {
       curSlideEl.scrollBy({ top: -260, behavior: 'smooth' });
       return;
     }
 
-    // 2. If prev vertical sub-slide exists in current horizontal group
     if (cur && cur.v > 1) {
       for (var i = 0; i < slides.length; i++) {
         var meta = getSlideMeta(i + 1);
@@ -251,7 +310,6 @@
       }
     }
 
-    // 3. Fallback: sequential prev
     if (currentSlide > 1) {
       updateSlide(currentSlide - 1, true, 'up');
     }
@@ -277,7 +335,7 @@
     updateSlide(totalSlides);
   }
 
-  // --- 4. Overview Grid & Help Modals ---
+  // --- 5. Overview Grid & Help Modals ---
   function toggleOverview() {
     isOverviewOpen = !isOverviewOpen;
     if (overviewModal) {
@@ -300,7 +358,7 @@
     }
   }
 
-  // --- 5. Fullscreen Controller ---
+  // --- 6. Fullscreen Controller ---
   function toggleFullscreen() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
       var el = document.documentElement;
@@ -318,7 +376,7 @@
     }
   }
 
-  // --- 6. Presenter Mode & Timer ---
+  // --- 7. Presenter Mode & Timer ---
   function updatePresenterView() {
     if (!presenterView) return;
 
@@ -344,7 +402,7 @@
     }
 
     if (presenterCounter && curMeta) {
-      presenterCounter.textContent = curMeta.displayIndex + ' / ' + totalSlides;
+      presenterCounter.textContent = currentSlide + ' / ' + totalSlides + (curMeta.isVertical ? ' (Sub-slide ' + curMeta.displayIndex + ')' : '');
     }
   }
 
@@ -391,7 +449,7 @@
     }
   }
 
-  // --- 7. Theme Switcher ---
+  // --- 8. Theme Switcher ---
   function toggleTheme() {
     var html = document.documentElement;
     var isDark = html.classList.contains('dark');
@@ -402,9 +460,15 @@
       html.classList.add('dark');
       localStorage.setItem('docboot-theme', 'dark');
     }
+
+    // Re-render Mermaid on active slide with updated theme
+    var curSlideEl = slides[currentSlide - 1];
+    if (curSlideEl && window.mermaid) {
+      renderMermaidInSlide(curSlideEl);
+    }
   }
 
-  // --- 8. Event Listeners ---
+  // --- 9. Event Listeners ---
   document.addEventListener('keydown', function (e) {
     // Ignore input fields
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
@@ -635,7 +699,7 @@
     });
   }
 
-  // --- 9. Live Reload (SSE) ---
+  // --- 10. Live Reload (SSE) ---
   if (window.EventSource) {
     var eventSource = new EventSource('/__docboot_reload');
     eventSource.onmessage = function (e) {
@@ -645,7 +709,7 @@
     };
   }
 
-  // --- 10. Initialize ---
+  // --- 11. Initialize ---
   var urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('presenter') === '1' || urlParams.get('presenter') === 'true') {
     togglePresenter();
