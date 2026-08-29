@@ -1,7 +1,8 @@
 /**
  * Docboot Presentation Client Runtime (<4KB Zero-dependency)
  * Handles slide navigation, keyboard shortcuts, touch gestures, URL hash sync,
- * fullscreen mode, presenter view, local timer, and live reload.
+ * fullscreen mode, presenter view, slide overview grid, shortcuts cheat-sheet,
+ * local timer, and live reload.
  */
 
 (function () {
@@ -13,13 +14,18 @@
 
   var currentSlide = 1;
   var isPresenterOpen = false;
+  var isOverviewOpen = false;
+  var isHelpOpen = false;
   var timerSeconds = 0;
   var timerInterval = null;
   var isTimerRunning = false;
+  var notesFontSize = 1.4;
 
   var progressBar = document.getElementById('docboot-presentation-progress');
   var slideCounter = document.getElementById('docboot-presentation-counter');
   var presenterView = document.getElementById('docboot-presenter-view');
+  var overviewModal = document.getElementById('docboot-overview-modal');
+  var helpModal = document.getElementById('docboot-help-modal');
 
   var presenterCurrent = document.getElementById('docboot-presenter-current');
   var presenterNext = document.getElementById('docboot-presenter-next');
@@ -53,6 +59,18 @@
       } else {
         slide.classList.remove('active');
         slide.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    // Update overview active card
+    if (overviewModal) {
+      var cards = overviewModal.querySelectorAll('.docboot-overview-card');
+      for (var j = 0; j < cards.length; j++) {
+        if (j + 1 === currentSlide) {
+          cards[j].classList.add('active');
+        } else {
+          cards[j].classList.remove('active');
+        }
       }
     }
 
@@ -98,7 +116,30 @@
     updateSlide(totalSlides);
   }
 
-  // --- 3. Fullscreen Controller ---
+  // --- 3. Overview Grid & Help Modals ---
+  function toggleOverview() {
+    isOverviewOpen = !isOverviewOpen;
+    if (overviewModal) {
+      if (isOverviewOpen) {
+        overviewModal.classList.add('open');
+      } else {
+        overviewModal.classList.remove('open');
+      }
+    }
+  }
+
+  function toggleHelp() {
+    isHelpOpen = !isHelpOpen;
+    if (helpModal) {
+      if (isHelpOpen) {
+        helpModal.classList.add('open');
+      } else {
+        helpModal.classList.remove('open');
+      }
+    }
+  }
+
+  // --- 4. Fullscreen Controller ---
   function toggleFullscreen() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
       var el = document.documentElement;
@@ -116,7 +157,7 @@
     }
   }
 
-  // --- 4. Presenter Mode & Timer ---
+  // --- 5. Presenter Mode & Timer ---
   function updatePresenterView() {
     if (!presenterView) return;
 
@@ -188,7 +229,7 @@
     }
   }
 
-  // --- 5. Theme Switcher ---
+  // --- 6. Theme Switcher ---
   function toggleTheme() {
     var html = document.documentElement;
     var isDark = html.classList.contains('dark');
@@ -201,7 +242,7 @@
     }
   }
 
-  // --- 6. Event Listeners ---
+  // --- 7. Event Listeners ---
   document.addEventListener('keydown', function (e) {
     // Ignore input fields
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
@@ -242,6 +283,19 @@
         lastSlide();
         break;
 
+      case 'o':
+      case 'O':
+      case 'g':
+      case 'G':
+        e.preventDefault();
+        toggleOverview();
+        break;
+
+      case '?':
+        e.preventDefault();
+        toggleHelp();
+        break;
+
       case 'f':
       case 'F':
         e.preventDefault();
@@ -261,8 +315,11 @@
         break;
 
       case 'Escape':
-        if (isPresenterOpen) {
-          e.preventDefault();
+        if (isOverviewOpen) {
+          toggleOverview();
+        } else if (isHelpOpen) {
+          toggleHelp();
+        } else if (isPresenterOpen) {
           togglePresenter();
         }
         break;
@@ -292,7 +349,6 @@
       var diffX = touchEndX - touchStartX;
       var diffY = touchEndY - touchStartY;
 
-      // Ensure horizontal swipe
       if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
         if (diffX < 0) {
           nextSlide();
@@ -310,14 +366,41 @@
   var nextBtn = document.getElementById('docboot-btn-next');
   if (nextBtn) nextBtn.addEventListener('click', nextSlide);
 
+  var overviewBtn = document.getElementById('docboot-btn-overview');
+  if (overviewBtn) overviewBtn.addEventListener('click', toggleOverview);
+
   var fullscreenBtn = document.getElementById('docboot-btn-fullscreen');
   if (fullscreenBtn) fullscreenBtn.addEventListener('click', toggleFullscreen);
 
   var presenterBtn = document.getElementById('docboot-btn-presenter');
   if (presenterBtn) presenterBtn.addEventListener('click', togglePresenter);
 
+  var helpBtn = document.getElementById('docboot-btn-help');
+  if (helpBtn) helpBtn.addEventListener('click', toggleHelp);
+
   var themeBtn = document.getElementById('docboot-btn-theme');
   if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+
+  // Overview Jump Clicks
+  if (overviewModal) {
+    overviewModal.addEventListener('click', function (e) {
+      var card = e.target.closest('[data-jump-slide]');
+      if (card) {
+        var targetIndex = parseInt(card.getAttribute('data-jump-slide'), 10);
+        if (!isNaN(targetIndex)) {
+          updateSlide(targetIndex);
+          toggleOverview();
+        }
+      }
+    });
+
+    var overviewCloseBtn = document.getElementById('docboot-overview-btn-close');
+    if (overviewCloseBtn) overviewCloseBtn.addEventListener('click', toggleOverview);
+  }
+
+  // Help Modal Close
+  var helpCloseBtn = document.getElementById('docboot-help-btn-close');
+  if (helpCloseBtn) helpCloseBtn.addEventListener('click', toggleHelp);
 
   // Presenter View Buttons
   var presenterCloseBtn = document.getElementById('docboot-presenter-btn-close');
@@ -332,7 +415,23 @@
   var timerResetBtn = document.getElementById('docboot-timer-btn-reset');
   if (timerResetBtn) timerResetBtn.addEventListener('click', resetTimer);
 
-  // --- 7. Live Reload (SSE) ---
+  var notesIncBtn = document.getElementById('docboot-notes-btn-inc');
+  if (notesIncBtn) {
+    notesIncBtn.addEventListener('click', function () {
+      notesFontSize = Math.min(notesFontSize + 0.2, 2.6);
+      if (presenterNotes) presenterNotes.style.fontSize = notesFontSize + 'rem';
+    });
+  }
+
+  var notesDecBtn = document.getElementById('docboot-notes-btn-dec');
+  if (notesDecBtn) {
+    notesDecBtn.addEventListener('click', function () {
+      notesFontSize = Math.max(notesFontSize - 0.2, 1.0);
+      if (presenterNotes) presenterNotes.style.fontSize = notesFontSize + 'rem';
+    });
+  }
+
+  // --- 8. Live Reload (SSE) ---
   if (window.EventSource) {
     var eventSource = new EventSource('/__docboot_reload');
     eventSource.onmessage = function (e) {
@@ -342,7 +441,7 @@
     };
   }
 
-  // --- 8. Initialize ---
+  // --- 9. Initialize ---
   var urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('presenter') === '1' || urlParams.get('presenter') === 'true') {
     togglePresenter();
