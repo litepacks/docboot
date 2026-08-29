@@ -149,27 +149,26 @@ export function renderLayout({
 
   <!-- Header -->
   <header class="sticky top-0 z-30 w-full border-b border-border/80 bg-background/80 backdrop-blur-xl transition-colors">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
       
       <!-- Left: Mobile Toggle & Brand Logo -->
-      <div class="flex items-center gap-3.5">
-        <button id="docboot-mobile-toggle" type="button" class="docboot-mobile-toggle euix-mobile-toggle md:hidden p-2 -ml-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors" aria-label="Open navigation">
+      <div class="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+        <button id="docboot-mobile-toggle" type="button" class="docboot-mobile-toggle euix-mobile-toggle md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors" aria-label="Open navigation">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
 
-        <a href="${withBase('/', base)}" class="flex items-center gap-2.5 font-bold text-foreground tracking-tight text-base hover:opacity-90 transition-opacity">
-          <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-extrabold text-xs shadow-md shadow-blue-500/25">▲</div>
-          <span class="bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text">${escapeHtml(siteTitle)}</span>
+        <a href="${withBase('/', base)}" class="flex items-center gap-2 font-bold text-foreground tracking-tight text-sm sm:text-base hover:opacity-90 transition-opacity">
+          <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-extrabold text-xs shadow-md shadow-blue-500/25 flex-shrink-0">▲</div>
+          <span class="bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text font-bold">${escapeHtml(siteTitle)}</span>
         </a>
       </div>
 
-      <!-- Center: Command Palette Trigger Button (Cmd+K) -->
-      <div class="flex-1 max-w-md mx-2 sm:mx-4">
+      <!-- Center: Desktop Command Palette Search Bar (Cmd+K) -->
+      <div class="hidden sm:flex flex-1 max-w-md mx-2 sm:mx-4">
         <button type="button" class="docboot-search-trigger euix-search-trigger w-full flex items-center justify-between px-3.5 py-1.5 rounded-xl border border-border/80 bg-muted/40 hover:bg-muted/80 text-muted-foreground hover:border-accent/40 text-xs sm:text-sm transition-all shadow-xs group cursor-pointer">
           <div class="flex items-center gap-2.5">
             <svg class="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <span class="hidden sm:inline">Search documentation...</span>
-            <span class="sm:hidden">Search...</span>
+            <span>Search documentation...</span>
           </div>
           <kbd class="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md border border-border bg-background text-[11px] font-mono text-muted-foreground shadow-xs group-hover:border-accent/40 transition-colors">
             <span class="text-xs">⌘</span>K
@@ -177,8 +176,13 @@ export function renderLayout({
         </button>
       </div>
 
-      <!-- Right: Action Links & Theme Selector -->
-      <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- Right: Action Links, Mobile Search Trigger & Theme Selector -->
+      <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+        <!-- Mobile Search Icon Button -->
+        <button type="button" class="docboot-search-trigger euix-search-trigger sm:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer" aria-label="Search documentation (Cmd+K)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </button>
+
         ${githubRepo ? `
         <a href="${githubRepo}" target="_blank" rel="noopener noreferrer" class="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors" aria-label="GitHub Repository">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>

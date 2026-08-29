@@ -448,6 +448,11 @@ html[data-font-family="sans"] body {
   font-family: var(--font-sans);
 }
 
+html, body {
+  overflow-x: clip;
+  max-width: 100vw;
+}
+
 html[data-font-family="display"] body,
 html[data-font-family="display"] {
   font-family: var(--font-display);
