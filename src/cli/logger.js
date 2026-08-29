@@ -1,4 +1,12 @@
+import fs from 'node:fs';
 import pc from 'picocolors';
+
+let pkgVersion = '0.2.10';
+try {
+  const pkgUrl = new URL('../../package.json', import.meta.url);
+  const pkg = JSON.parse(fs.readFileSync(pkgUrl, 'utf-8'));
+  if (pkg.version) pkgVersion = pkg.version;
+} catch {}
 
 export class Logger {
   constructor(options = {}) {
@@ -6,7 +14,7 @@ export class Logger {
     this.verbose = options.verbose || false;
   }
 
-  banner(version = '0.1.0') {
+  banner(version = pkgVersion) {
     if (this.quiet) return;
     console.log(
       pc.cyan(pc.bold('\n  ▲ Docboot ')) +

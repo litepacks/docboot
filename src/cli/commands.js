@@ -13,6 +13,13 @@ import { StatsCollector } from '../stats/index.js';
 import { AssetGenerator } from '../assets/generator.js';
 import { CacheManager } from '../cache/index.js';
 
+let VERSION = '0.2.10';
+try {
+  const pkgUrl = new URL('../../package.json', import.meta.url);
+  const pkg = JSON.parse(fs.readFileSync(pkgUrl, 'utf-8'));
+  if (pkg.version) VERSION = pkg.version;
+} catch {}
+
 export async function runCommand(flags) {
   const logger = new Logger({
     quiet: flags.quiet,
@@ -25,7 +32,7 @@ export async function runCommand(flags) {
   }
 
   if (flags.command === 'version') {
-    console.log('docboot v0.1.0');
+    console.log(`docboot v${VERSION}`);
     return;
   }
 
@@ -38,7 +45,7 @@ export async function runCommand(flags) {
   });
 
   if (flags.command === 'init') {
-    logger.banner('0.1.0');
+    logger.banner(VERSION);
     const { initProject } = await import('./init.js');
     await initProject({
       rootDir,
@@ -51,7 +58,7 @@ export async function runCommand(flags) {
   }
 
   if (flags.command === 'clean') {
-    logger.banner('0.1.0');
+    logger.banner(VERSION);
     const cache = new CacheManager(config.cacheDir);
     cache.clear();
 
@@ -65,7 +72,7 @@ export async function runCommand(flags) {
   }
 
   if (flags.command === 'setup') {
-    logger.banner('0.1.0');
+    logger.banner(VERSION);
     const { setupGitHubPages } = await import('../setup/github/index.js');
     await setupGitHubPages({
       rootDir,
@@ -78,7 +85,7 @@ export async function runCommand(flags) {
   }
 
   if (flags.command === 'doctor') {
-    logger.banner('0.1.0');
+    logger.banner(VERSION);
     const doctor = new Doctor(config, logger);
     const result = await doctor.diagnose({ github: flags.github, a11y: flags.a11y });
 
@@ -112,7 +119,7 @@ export async function runCommand(flags) {
   }
 
   if (flags.command === 'stats') {
-    logger.banner('0.1.0');
+    logger.banner(VERSION);
     const statsCollector = new StatsCollector(config, logger);
     const stats = await statsCollector.collect();
 
@@ -143,7 +150,7 @@ export async function runCommand(flags) {
   }
 
   if (flags.command === 'generate') {
-    logger.banner('0.1.0');
+    logger.banner(VERSION);
     const generator = new AssetGenerator(config, logger);
     const type = flags.subcommand || 'assets';
     const files = await generator.generate(type);
@@ -156,7 +163,7 @@ export async function runCommand(flags) {
   }
 
   if (flags.command === 'build') {
-    logger.banner('0.1.0');
+    logger.banner(VERSION);
     const builder = new SiteBuilder(config, logger, { noCache: flags.noCache });
     const result = await builder.build({ isDev: false, clean: flags.clean });
     logger.buildDone(path.relative(rootDir, config.outDir) || config.outDir, result.pageCount, result.elapsedMs);
@@ -177,7 +184,7 @@ export async function runCommand(flags) {
   }
 
   if (flags.command === 'serve') {
-    logger.banner('0.1.0');
+    logger.banner(VERSION);
     const server = new StaticServer(config.outDir);
     const { port, url } = await server.start(config.port, config.host);
     logger.info(`Serving static site at ${pc.cyan(url)} (from ${path.relative(rootDir, config.outDir)})`);
@@ -189,7 +196,7 @@ export async function runCommand(flags) {
   }
 
   // Default: 'dev' command
-  logger.banner('0.1.0');
+  logger.banner(VERSION);
   const builder = new SiteBuilder(config, logger, { noCache: flags.noCache });
   const result = await builder.build({ isDev: true, clean: flags.clean });
 
