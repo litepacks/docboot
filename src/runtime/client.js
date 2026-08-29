@@ -1552,6 +1552,71 @@
     } catch (e) {}
   }
 
+  // --- 11. Scroll Lock & Position Restoration System ---
+  function initScrollRestoration() {
+    var SIDEBAR_KEY = 'docboot-sidebar-scroll';
+    var PAGE_PREFIX = 'docboot-scroll-y:';
+
+    var sidebar = document.getElementById('docboot-sidebar-desktop') || document.querySelector('aside.md\\:block, aside.hidden.md\\:block');
+
+    // 1. Sidebar Scroll Restoration
+    if (sidebar) {
+      var savedSidebarScroll = sessionStorage.getItem(SIDEBAR_KEY);
+      if (savedSidebarScroll !== null) {
+        sidebar.scrollTop = parseInt(savedSidebarScroll, 10);
+      } else {
+        var activeLink = sidebar.querySelector('a.bg-accent\\/10, a.text-accent');
+        if (activeLink) {
+          activeLink.scrollIntoView({ block: 'nearest' });
+        }
+      }
+
+      sidebar.addEventListener('scroll', function() {
+        sessionStorage.setItem(SIDEBAR_KEY, sidebar.scrollTop);
+      }, { passive: true });
+    }
+
+    // 2. Window / Article Scroll Restoration (on refresh/reload)
+    var currentPath = window.location.pathname;
+    var currentHash = window.location.hash;
+
+    if (!currentHash) {
+      var savedPageScroll = sessionStorage.getItem(PAGE_PREFIX + currentPath);
+      if (savedPageScroll !== null) {
+        var targetY = parseInt(savedPageScroll, 10);
+        if (targetY > 0) {
+          window.scrollTo(0, targetY);
+          requestAnimationFrame(function() {
+            window.scrollTo(0, targetY);
+          });
+        }
+      }
+    } else {
+      var anchor = document.querySelector(currentHash);
+      if (anchor) {
+        setTimeout(function() {
+          anchor.scrollIntoView({ behavior: 'smooth' });
+        }, 60);
+      }
+    }
+
+    // Continuously save page scroll position
+    var scrollDebounce = null;
+    window.addEventListener('scroll', function() {
+      clearTimeout(scrollDebounce);
+      scrollDebounce = setTimeout(function() {
+        sessionStorage.setItem(PAGE_PREFIX + window.location.pathname, window.scrollY);
+      }, 80);
+    }, { passive: true });
+
+    window.addEventListener('beforeunload', function() {
+      if (sidebar) {
+        sessionStorage.setItem(SIDEBAR_KEY, sidebar.scrollTop);
+      }
+      sessionStorage.setItem(PAGE_PREFIX + window.location.pathname, window.scrollY);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     initTheme();
     initCopyButtons();
@@ -1564,5 +1629,6 @@
     initLightbox();
     initSoftNavigation();
     initLiveReload();
+    initScrollRestoration();
   });
 })();

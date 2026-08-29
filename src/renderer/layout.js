@@ -303,7 +303,7 @@ export function renderLayout({
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex">
     
     <!-- Left Sidebar (Desktop) -->
-    <aside class="hidden md:block w-64 flex-shrink-0 border-r border-border/60 py-8 pr-6 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+    <aside id="docboot-sidebar-desktop" class="docboot-sidebar-desktop hidden md:block w-64 flex-shrink-0 border-r border-border/60 py-8 pr-6 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
       ${sidebarHtml}
     </aside>
 
