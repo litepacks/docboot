@@ -11,6 +11,7 @@ import { buildSearchIndex } from '../search/indexer.js';
 import { renderLayout } from '../renderer/layout.js';
 import { generateSitemapAndRobots } from '../renderer/sitemap.js';
 import { compileCss } from '../theme/compiler.js';
+import { compileClientJs } from '../runtime/compiler.js';
 import { CacheManager } from '../cache/index.js';
 import { hashString, hashObject } from '../cache/hasher.js';
 import { escapeHtml } from '../markdown/highlighter.js';
@@ -348,11 +349,9 @@ export class SiteBuilder {
     // Write compiled CSS
     fs.writeFileSync(path.join(assetsDir, 'docs.css'), compiledCss, 'utf-8');
 
-    // Copy Client JS
-    const clientJsPath = path.resolve(__dirname, '../runtime/client.js');
-    if (fs.existsSync(clientJsPath)) {
-      fs.copyFileSync(clientJsPath, path.join(assetsDir, 'docs.js'));
-    }
+    // Compile and write Client JS (minified in production, unminified in dev)
+    const compiledJs = await compileClientJs({ minify: !isDev });
+    fs.writeFileSync(path.join(assetsDir, 'docs.js'), compiledJs, 'utf-8');
 
     // Copy Search Runtime
     const searchRuntimePath = path.resolve(__dirname, '../runtime/assets/search-runtime.js');

@@ -22,6 +22,8 @@ test('SiteBuilder builds full static site to dist', async () => {
   assert.ok(fs.existsSync(path.join(config.outDir, 'guide', 'rich-content', 'index.html')));
   assert.ok(fs.existsSync(path.join(config.outDir, 'assets', 'docs.css')));
   assert.ok(fs.existsSync(path.join(config.outDir, 'assets', 'docs.js')));
+  const docsJsContent = fs.readFileSync(path.join(config.outDir, 'assets', 'docs.js'), 'utf-8');
+  assert.ok(docsJsContent.length < 50000, `Expected minified docs.js < 50KB, got ${docsJsContent.length}`);
   assert.ok(fs.existsSync(path.join(config.outDir, 'search.json')));
   assert.ok(fs.existsSync(path.join(config.outDir, 'sitemap.xml')));
   assert.ok(fs.existsSync(path.join(config.outDir, 'robots.txt')));
