@@ -44,6 +44,13 @@ export const DEFAULT_CONFIG = {
   host: 'localhost',
   sidebar: null,
   clean: false,
+  theme: {
+    preset: 'zinc',
+    defaultMode: 'system',
+    themeToggle: true,
+    presetMenu: true,
+    fontSizeControl: true
+  },
   search: {
     boost: {
       title: 5,
@@ -228,6 +235,11 @@ export async function loadConfig(rootDir = process.cwd(), cliOverrides = {}) {
     cacheDir: path.resolve(rootDir, cliOverrides.cacheDir || userConfig.cacheDir || '.docboot'),
     port: cliOverrides.port || userConfig.port || DEFAULT_CONFIG.port,
     host: cliOverrides.host || userConfig.host || DEFAULT_CONFIG.host,
+    theme: {
+      ...DEFAULT_CONFIG.theme,
+      ...(userConfig.theme || {}),
+      ...(cliOverrides.theme || {})
+    },
     search: mergedSearch
   };
 

@@ -125,3 +125,27 @@ test('SiteBuilder renders HTML with custom base path', async () => {
 
   fs.rmSync(config.outDir, { recursive: true, force: true });
 });
+
+test('SiteBuilder respects theme visibility controls (themeToggle, presetMenu, fontSizeControl)', async () => {
+  const rootDir = process.cwd();
+  const config = await loadConfig(rootDir, {
+    docs: './docs',
+    out: './dist_theme_vis_test',
+    theme: {
+      themeToggle: false,
+      presetMenu: false,
+      fontSizeControl: false
+    },
+    clean: true
+  });
+
+  const builder = new SiteBuilder(config);
+  await builder.build({ isDev: false });
+
+  const indexHtml = fs.readFileSync(path.join(config.outDir, 'index.html'), 'utf-8');
+  assert.doesNotMatch(indexHtml, /id="docboot-preset-toggle"/);
+  assert.doesNotMatch(indexHtml, /id="docboot-theme-toggle"/);
+  assert.doesNotMatch(indexHtml, /class="docboot-font-step-btn/);
+
+  fs.rmSync(config.outDir, { recursive: true, force: true });
+});
