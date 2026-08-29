@@ -1074,6 +1074,9 @@
 
       finishProgress();
 
+      // Dispatch pageview to connected analytics (GA4, Plausible, Umami, Fathom)
+      trackPageView();
+
       // Lazy re-initialization only if components exist on new page
       initTocScrollSpy();
       if (currentMain && currentMain.querySelector('.docboot-mermaid-wrapper')) {
@@ -1083,6 +1086,42 @@
       initTabs();
       initLightbox();
       preloadAllVisibleLinks();
+    }
+
+    function trackPageView() {
+      try {
+        var path = window.location.pathname + window.location.search;
+        var title = document.title;
+        var href = window.location.href;
+
+        // 1. Google Analytics (GA4)
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'page_view', {
+            page_path: path,
+            page_title: title,
+            page_location: href
+          });
+        }
+
+        // 2. Plausible Analytics
+        if (typeof window.plausible === 'function') {
+          window.plausible('pageview', { u: href });
+        }
+
+        // 3. Fathom Analytics
+        if (window.fathom && typeof window.fathom.trackPageview === 'function') {
+          window.fathom.trackPageview();
+        }
+
+        // 4. Umami Analytics
+        if (window.umami && typeof window.umami.track === 'function') {
+          window.umami.track(function(props) {
+            return Object.assign({}, props, { url: path, title: title });
+          });
+        }
+      } catch (err) {
+        // Silently ignore analytics dispatch error in dev/offline
+      }
     }
 
     var cached = pageCache.get(cleanPath);

@@ -93,6 +93,48 @@ This displays a sleek `⌥ Source: src/orm/query-builder.js ↗` badge at the to
 
 ---
 
+## Analytics Integration
+
+Docboot provides built-in, zero-latency support for popular privacy-friendly analytics and Google Analytics with automatic SPA pageview tracking on route changes:
+
+```javascript title="docboot.config.js"
+export default {
+  analytics: {
+    // 1. Google Analytics (GA4)
+    google: {
+      id: "G-XXXXXXXXXX"
+    },
+
+    // 2. Plausible Analytics (Privacy-first)
+    plausible: {
+      domain: "docs.example.com",
+      apiHost: "https://plausible.io" // optional self-hosted instance
+    },
+
+    // 3. Umami Analytics
+    umami: {
+      websiteId: "xxxx-xxxx-xxxx",
+      src: "https://analytics.umami.is/script.js"
+    },
+
+    // 4. Fathom Analytics
+    fathom: {
+      siteId: "XXXXXX"
+    },
+
+    // 5. Microsoft Clarity
+    clarity: {
+      id: "XXXXXXX"
+    },
+
+    // 6. Custom Head Injection
+    custom: `<script defer data-custom="my-analytics" src="https://my-cdn.com/tracker.js"></script>`
+  }
+};
+```
+
+---
+
 ## Next Steps
 
 - [CLI Reference](/guide/cli)

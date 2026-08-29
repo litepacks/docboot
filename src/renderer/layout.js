@@ -1,6 +1,7 @@
 import { THEME_INIT_SCRIPT } from '../theme/theme-script.js';
 import { escapeHtml } from '../markdown/highlighter.js';
 import { withBase } from '../config/index.js';
+import { renderAnalyticsHead } from './analytics.js';
 
 /**
  * Generates full standalone HTML page with modern, polished developer UI.
@@ -148,6 +149,9 @@ export function renderLayout({
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="${withBase('/assets/docs.css', base)}">
+
+  <!-- Analytics -->
+  ${renderAnalyticsHead(config)}
 </head>
 <body class="bg-background text-foreground min-h-screen flex flex-col antialiased selection:bg-accent/20 selection:text-accent font-sans">
 
