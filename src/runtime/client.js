@@ -1002,6 +1002,35 @@
     });
   }
 
+  function getElementByHash(hash) {
+    if (!hash || hash === '#') return null;
+    var rawId = hash.startsWith('#') ? hash.slice(1) : hash;
+    var decodedId = rawId;
+    try {
+      decodedId = decodeURIComponent(rawId);
+    } catch (e) {}
+
+    // 1. Direct getElementById (fastest and handles numeric/special character IDs safely)
+    var el = document.getElementById(decodedId) || document.getElementById(rawId);
+    if (el) return el;
+
+    // 2. Safe querySelector with CSS.escape
+    try {
+      if (window.CSS && CSS.escape) {
+        return (
+          document.querySelector('#' + CSS.escape(decodedId)) ||
+          document.querySelector('#' + CSS.escape(rawId))
+        );
+      }
+    } catch (e) {}
+
+    // 3. Fallback name anchor
+    return (
+      document.querySelector('a[name="' + decodedId + '"]') ||
+      document.querySelector('a[name="' + rawId + '"]')
+    );
+  }
+
   function navigateTo(url, push) {
     if (push === undefined) push = true;
     var resolvedUrl = resolveBase(url);
@@ -1021,7 +1050,7 @@
         history.pushState(null, '', fullTargetUrl);
       }
       if (hash) {
-        var el = document.querySelector(hash);
+        var el = getElementByHash(hash);
         if (el) el.scrollIntoView({ behavior: 'smooth' });
       }
       return;
@@ -1085,7 +1114,7 @@
       }
 
       if (hash) {
-        var anchor = document.querySelector(hash);
+        var anchor = getElementByHash(hash);
         if (anchor) {
           anchor.scrollIntoView({ behavior: 'smooth' });
         } else {
@@ -1592,7 +1621,7 @@
         }
       }
     } else {
-      var anchor = document.querySelector(currentHash);
+      var anchor = getElementByHash(currentHash);
       if (anchor) {
         setTimeout(function() {
           anchor.scrollIntoView({ behavior: 'smooth' });
