@@ -346,7 +346,8 @@ export class SiteBuilder {
     // Write 404.html to output root
     fs.writeFileSync(path.join(this.config.outDir, '404.html'), notFoundHtml, 'utf-8');
 
-    // 8. Generate SEO Files (sitemap.xml, robots.txt, CNAME)
+    // 8. Generate SEO & GitHub Pages Files (.nojekyll, sitemap.xml, robots.txt, CNAME)
+    fs.writeFileSync(path.join(this.config.outDir, '.nojekyll'), '', 'utf-8');
     const { sitemap, robots } = generateSitemapAndRobots(pages, this.config);
     fs.writeFileSync(path.join(this.config.outDir, 'sitemap.xml'), sitemap, 'utf-8');
     fs.writeFileSync(path.join(this.config.outDir, 'robots.txt'), robots, 'utf-8');
