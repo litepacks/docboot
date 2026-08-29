@@ -27,22 +27,34 @@ export class Doctor {
     let totalLinks = 0;
     let totalImages = 0;
 
-    // 1. Scan and parse all pages
-    for (const entry of fileEntries) {
-      const rawContent = fs.readFileSync(entry.fullPath, 'utf-8');
-      const sourceHash = hashString(rawContent);
+    // 1. Scan and parse all pages in parallel
+    const parsedEntries = await Promise.all(
+      fileEntries.map(async (entry) => {
+        const rawContent = await fs.promises.readFile(entry.fullPath, 'utf-8');
+        const sourceHash = hashString(rawContent);
 
-      let parsed = null;
-      if (this.cache.isFresh(entry.relativePath, sourceHash)) {
-        parsed = this.cache.getPageArtifact(entry.relativePath);
-      }
-      if (!parsed) {
-        parsed = parseMarkdown(rawContent, { relativePath: entry.relativePath });
-      }
+        let parsed = null;
+        if (this.cache.isFresh(entry.relativePath, sourceHash)) {
+          parsed = this.cache.getPageArtifact(entry.relativePath);
+        }
+        if (!parsed) {
+          parsed = parseMarkdown(rawContent, { relativePath: entry.relativePath });
+        }
 
-      const route = parsed.route || filePathToRoute(entry.relativePath);
-      const title = parsed.title || deriveTitle(entry.relativePath, parsed.frontmatter, parsed.headings);
+        const route = parsed.route || filePathToRoute(entry.relativePath);
+        const title = parsed.title || deriveTitle(entry.relativePath, parsed.frontmatter, parsed.headings);
 
+        return {
+          entry,
+          parsed,
+          route,
+          title,
+          rawContent
+        };
+      })
+    );
+
+    for (const { entry, parsed, route, title, rawContent } of parsedEntries) {
       // Check route collisions
       if (routeMap.has(route)) {
         errors.push({
