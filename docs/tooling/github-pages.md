@@ -65,8 +65,8 @@ All internal markdown links, favicon paths, search indexes, PWA service workers,
 After pushing your workflow to GitHub:
 
 1. Open your repository on GitHub.
-2. Navigate to **Settings** $\rightarrow$ **Pages**.
-3. Under **Build and deployment $\rightarrow$ Source**, select **`GitHub Actions`** (instead of "Deploy from a branch").
+2. Navigate to **Settings** → **Pages**.
+3. Under **Build and deployment → Source**, select **`GitHub Actions`** (instead of "Deploy from a branch").
 
 Once selected, every `git push` to your default branch compiles and publishes your documentation automatically.
 

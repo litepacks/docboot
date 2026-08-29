@@ -29,7 +29,7 @@ Docboot automatically derives:
 
 1. **Clean Web Routes**: `README.md` maps to `/`. Subdirectories map to clean URL paths (e.g. `/guide/installation`).
 2. **Numeric Prefix Stripping**: Prefixes like `01-` or `02-` control file order in the sidebar without appearing in the URL.
-3. **Automatic Page Titles**: Derived from the document's top `# Heading 1`, YAML `title` frontmatter, or humanized file name (`01-getting-started.md` $\rightarrow$ `Getting Started`).
+3. **Automatic Page Titles**: Derived from the document's top `# Heading 1`, YAML `title` frontmatter, or humanized file name (`01-getting-started.md` → `Getting Started`).
 4. **Hierarchical Navigation Sidebar**: Nested folders automatically become collapsible sidebar groups.
 5. **Interactive Breadcrumbs**: Breadcrumbs at the top of each page reflect the folder depth.
 6. **Previous / Next Links**: Sorted pagination links at the bottom of each page.

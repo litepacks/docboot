@@ -157,7 +157,7 @@ docboot doctor --a11y
 
 ### What Doctor Checks
 
-* **Color Contrast Ratios:** Calculates relative luminance and verifies contrast ratios $\ge 4.5:1$ for normal text and $\ge 3.0:1$ for large text and UI components.
+* **Color Contrast Ratios:** Calculates relative luminance and verifies contrast ratios `>= 4.5:1` for normal text and `>= 3.0:1` for large text and UI components.
 * **Missing Image Alt Attributes:** Flags any `<img>` missing an `alt` description.
 * **Heading Hierarchy Skips:** Warns if heading levels are skipped (e.g. jumping from `<h1>` directly to `<h3>`).
 * **Iframe Titles:** Ensures all embedded `<iframe>` elements contain a descriptive `title` attribute for screen readers.
