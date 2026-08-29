@@ -9,8 +9,26 @@ import { compilePresentation } from './compiler.js';
 import { renderPresentation } from './renderer.js';
 import { compileCss } from '../theme/compiler.js';
 
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.ttf': 'font/ttf'
+};
+
 /**
- * Starts a local dev presentation server with file watching and instant SSE live reload.
+ * Starts a local dev presentation server with file watching, asset serving, and instant SSE live reload.
  *
  * @param {string} filePath Path to Markdown talk file
  * @param {object} options
@@ -31,6 +49,10 @@ export function startPresentationServer(filePath, options = {}) {
   const host = options.host || 'localhost';
   const logger = options.logger;
   const sse = new SSEBroadcaster();
+  const fileDir = path.dirname(resolvedPath);
+  const publicDir = path.resolve(process.cwd(), 'public');
+  const base = options.config?.base || '/';
+  const cleanBase = base.replace(/^\/+|\/+$/g, '');
 
   let cachedHtml = '';
 
@@ -58,7 +80,7 @@ export function startPresentationServer(filePath, options = {}) {
 
     const server = http.createServer((req, res) => {
       const url = new URL(req.url, `http://${host}`);
-      const pathname = decodeURIComponent(url.pathname);
+      let pathname = decodeURIComponent(url.pathname);
 
       // SSE Live reload endpoint
       if (pathname === '/__docboot_reload' || pathname === '/__euix_reload') {
@@ -66,15 +88,41 @@ export function startPresentationServer(filePath, options = {}) {
         return;
       }
 
-      // Serve Presentation HTML
-      if (pathname === '/' || pathname === '/index.html') {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      // Strip base prefix if requested under base path
+      if (cleanBase && pathname.startsWith(`/${cleanBase}`)) {
+        pathname = pathname.slice(cleanBase.length + 1) || '/';
+      }
+
+      // Serve Presentation HTML (Root / Index / HTML routes)
+      if (pathname === '/' || pathname === '/index.html' || pathname === '' || !path.extname(pathname)) {
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        });
         res.end(cachedHtml);
         return;
       }
 
-      // Fallback 404
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      // Serve static assets from relative fileDir, publicDir, or rootDir
+      const subPath = pathname.replace(/^\/+/, '');
+      const candidates = [
+        path.join(fileDir, subPath),
+        path.join(publicDir, subPath),
+        path.join(process.cwd(), subPath)
+      ];
+
+      for (const targetFile of candidates) {
+        if (fs.existsSync(targetFile) && fs.statSync(targetFile).isFile()) {
+          const ext = path.extname(targetFile).toLowerCase();
+          const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+          res.writeHead(200, { 'Content-Type': contentType });
+          fs.createReadStream(targetFile).pipe(res);
+          return;
+        }
+      }
+
+      // Fallback 404 or serve HTML for navigation requests
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('Not Found');
     });
 
