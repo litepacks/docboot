@@ -1,18 +1,50 @@
 ---
 title: Rich Content Primitives
-description: Guide on tabs, code groups, collapsible details, embeds, galleries, and lightbox in Docboot.
-order: 4
+description: Rich technical documentation primitives without MDX or JSX.
+order: 1
 ---
 
 # Rich Content Primitives
 
-Docboot includes high-value built-in documentation primitives so you can create richer technical documentation without needing MDX, React components, or raw HTML.
+> **Rich documentation without MDX or JSX.**  
+> Most documentation UI should not require switching from standard Markdown to JSX components.
+
+Docboot provides expressive, accessible primitives via standard Markdown directives (`:::directive`) that compile ahead of time into portable HTML.
 
 ---
 
-## 1. Accessible Tabs & Synced Groups
+## 1. Callout Containers
 
-Create responsive tabs with standard `:::tabs` syntax:
+Highlight important notes, warnings, and tips:
+
+:::tip Pro Tip
+You can use `:::tip`, `:::info`, `:::warning`, `:::danger`, and `:::note` with optional custom titles.
+:::
+
+:::warning Experimental Feature
+This API is subject to changes in upcoming minor releases.
+:::
+
+:::danger Critical Requirement
+Never commit production API keys or credentials to public Git repositories.
+:::
+
+Syntax:
+```markdown
+:::tip Pro Tip
+Content goes here.
+:::
+
+:::warning
+Experimental API.
+:::
+```
+
+---
+
+## 2. Accessible Tabs & Synced Groups
+
+Create responsive tab interfaces with optional cross-page synchronized selection:
 
 :::tabs group="package-manager"
 ::tab npm
@@ -33,32 +65,27 @@ bun add docboot
 ```
 :::
 
-> **Synced Tabs**: Notice `group="package-manager"`. When you choose `pnpm`, all other tabs on the page with the same group will switch in real-time and save your preference in `localStorage`!
+When `group="package-manager"` is set, selecting `pnpm` will automatically switch all other tabs on the website with the same group name and persist the preference in `localStorage`.
 
+Syntax:
+````markdown
 :::tabs group="package-manager"
 ::tab npm
 ```bash
-npx docboot . -o
+npm install docboot
 ```
 ::tab pnpm
 ```bash
-pnpm exec docboot . -o
-```
-::tab yarn
-```bash
-yarn docboot . -o
-```
-::tab bun
-```bash
-bun x docboot . -o
+pnpm add docboot
 ```
 :::
+````
 
 ---
 
-## 2. Code Groups
+## 3. Code Groups
 
-Organize multi-language code examples compactly:
+Display multi-language code snippets with tabbed file headers:
 
 :::code-group
 ```js [JavaScript]
@@ -85,31 +112,68 @@ pub fn greet(name: &str) -> String {
 ```
 :::
 
+Syntax:
+````markdown
+:::code-group
+```js [JavaScript]
+const x = 1;
+```
+```ts [TypeScript]
+const x: number = 1;
+```
+:::
+````
+
 ---
 
-## 3. Collapsible Sections (`:::details`)
+## 4. Collapsible Details (`:::details`)
 
-Use native, accessible `<details>` elements that degrade gracefully even with JavaScript disabled:
+Native, accessible `<details>` elements that work smoothly with or without JavaScript:
 
-:::details Advanced Config Example
-```javascript
-// docboot.config.js
-export default {
-  theme: {
-    preset: "ocean"
-  },
-  embeds: {
-    allowedDomains: ["youtube.com", "codesandbox.io", "stackblitz.com"]
-  }
-};
+:::details Advanced Build Options
+When building in resource-constrained CI environments, you can disable compression or clear cache:
+```bash
+docboot build --clean --no-cache
 ```
 :::
 
+Syntax:
+```markdown
+:::details Custom Title
+Content visible when expanded.
+:::
+```
+
 ---
 
-## 4. Safe Embeds (`:::embed`)
+## 5. Text Size Modifiers
 
-Embed interactive sandboxes and videos with responsive aspect ratios, lazy loading, and domain allowlists:
+Control typographic hierarchy for introductory text and fine print:
+
+:::lead
+Lead paragraphs are styled with larger, high-contrast typography for chapter introductions.
+:::
+
+:::text-sm
+Smaller auxiliary text or fine print for terms and references.
+:::
+
+Syntax:
+```markdown
+:::lead
+Introductory paragraph.
+:::
+
+:::text-sm
+Fine print note.
+:::
+```
+
+---
+
+## 6. Safe Embeds (`:::embed`) & Security Model
+
+Docboot includes a secure, sandboxed embedding mechanism for external demos and videos:
 
 :::embed youtube
 src: https://www.youtube.com/watch?v=dQw4w9WgXcQ
@@ -117,13 +181,18 @@ title: Getting Started Video Walkthrough
 ratio: 16/9
 :::
 
+### Security Model:
+- **Domain Allowlist**: Embed sources must match allowed domains configured in `docboot.config.js` (default: `youtube.com`, `codesandbox.io`, `stackblitz.com`, `codepen.io`, `vimeo.com`).
+- **Iframe Sandbox**: Rendered with strict `loading="lazy"`, `referrerpolicy="no-referrer"`, and sandbox attributes.
+- **Safe Fallback**: Any disallowed domain or malformed URL is safely rejected by `docboot doctor` and rendered as a secure external link.
+
 ---
 
-## 5. Image Lightbox & Galleries
+## 7. Image Lightbox & Galleries
 
-All standard Markdown images automatically support lazy loading and full-size accessible lightbox modals on click.
+All standard Markdown images automatically support zoom-in lightbox modals.
 
-You can also create explicit image galleries:
+You can also group multiple images into responsive grid galleries:
 
 :::gallery
 - src: https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80
@@ -133,8 +202,12 @@ You can also create explicit image galleries:
 - src: https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&auto=format&fit=crop&q=80
   alt: Developer Workspace
   caption: High performance local development server
-
-- src: https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=80
-  alt: Analytics
-  caption: Comprehensive metrics and build statistics
 :::
+
+---
+
+## Next Steps
+
+- [Mermaid Diagrams](/guide/diagrams) — Interactive flowcharts and architecture graphs
+- [Directives Reference](/reference/directives) — Complete directive syntax cheatsheet
+- [Docboot Doctor](/tooling/doctor) — Validating broken directives and missing images

@@ -18,8 +18,8 @@ test('SiteBuilder builds full static site to dist', async () => {
 
   assert.ok(result.pageCount >= 5, `Expected >= 5 pages, got ${result.pageCount}`);
   assert.ok(fs.existsSync(path.join(config.outDir, 'index.html')));
-  assert.ok(fs.existsSync(path.join(config.outDir, 'getting-started', 'index.html')));
-  assert.ok(fs.existsSync(path.join(config.outDir, 'guide', 'installation', 'index.html')));
+  assert.ok(fs.existsSync(path.join(config.outDir, 'getting-started', 'quick-start', 'index.html')));
+  assert.ok(fs.existsSync(path.join(config.outDir, 'guide', 'rich-content', 'index.html')));
   assert.ok(fs.existsSync(path.join(config.outDir, 'assets', 'docs.css')));
   assert.ok(fs.existsSync(path.join(config.outDir, 'assets', 'docs.js')));
   assert.ok(fs.existsSync(path.join(config.outDir, 'search.json')));
@@ -53,7 +53,7 @@ test('SiteBuilder builds full static site to dist', async () => {
   // Read search.json and verify structure
   const searchJson = JSON.parse(fs.readFileSync(path.join(config.outDir, 'search.json'), 'utf-8'));
   assert.ok(Array.isArray(searchJson));
-  assert.ok(searchJson.some(item => item.route === '/getting-started'));
+  assert.ok(searchJson.some(item => item.route === '/getting-started/quick-start' || item.route === '/getting-started'));
 
   // Clean up test dist
   fs.rmSync(config.outDir, { recursive: true, force: true });
@@ -73,11 +73,11 @@ test('SiteBuilder renders editLink and sourceLink in layout and respects frontma
   const builder = new SiteBuilder(config);
   await builder.build({ isDev: false });
 
-  const installationHtml = fs.readFileSync(path.join(config.outDir, 'guide', 'installation', 'index.html'), 'utf-8');
-  assert.match(installationHtml, /Edit this page on GitHub/);
-  assert.match(installationHtml, /https:\/\/github\.com\/docboot\/docboot\/edit\/main\/docs\/guide\/installation\.md/);
-  assert.match(installationHtml, /View source/);
-  assert.match(installationHtml, /https:\/\/github\.com\/docboot\/docboot\/blob\/main\/docs\/guide\/installation\.md/);
+  const richContentHtml = fs.readFileSync(path.join(config.outDir, 'guide', 'rich-content', 'index.html'), 'utf-8');
+  assert.match(richContentHtml, /Edit this page on GitHub/);
+  assert.match(richContentHtml, /https:\/\/github\.com\/docboot\/docboot\/edit\/main\/docs\/guide\/rich-content\.md/);
+  assert.match(richContentHtml, /View source/);
+  assert.match(richContentHtml, /https:\/\/github\.com\/docboot\/docboot\/blob\/main\/docs\/guide\/rich-content\.md/);
 
   fs.rmSync(config.outDir, { recursive: true, force: true });
 });
@@ -121,7 +121,7 @@ test('SiteBuilder renders HTML with custom base path', async () => {
   assert.match(indexHtml, /href="\/docboot\/favicon\.svg"/);
   assert.match(indexHtml, /href="\/docboot\/manifest\.webmanifest"/);
   assert.match(indexHtml, /__DOCBOOT_BASE__ = "\/docboot\/"/);
-  assert.match(indexHtml, /href="\/docboot\/guide\/installation"/);
+  assert.match(indexHtml, /href="\/docboot\/guide\/rich-content"/);
 
   fs.rmSync(config.outDir, { recursive: true, force: true });
 });

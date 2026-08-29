@@ -1,159 +1,92 @@
 # Docboot
 
-> **Ultra-fast, zero-config, lightweight Markdown documentation generator with local client search, zero-latency soft SPA navigation, GitHub Pages setup, Mermaid diagrams, rich primitives, and modern developer aesthetics.**
-
-`docboot` transforms any directory of Markdown files into a modern, static, SEO-ready documentation website with instant local preview and sub-second incremental builds.
-
----
-
-## ⚡ Quick Start
+> **Turn an existing Markdown folder into production-ready documentation.**  
+> Don't create a docs project. Point Docboot at your Markdown.
 
 ```bash
-# Start dev server instantly on current directory
 npx docboot .
-
-# Start dev server on ./docs folder and open browser
-npx docboot ./docs -o
-
-# Build static production site to ./dist
-npx docboot build
-
-# Preview static production build locally
-npx docboot serve
-
-# Validate documentation health (broken links, images, routes)
-npx docboot doctor
-
-# Prepare GitHub Actions for GitHub Pages deployment
-npx docboot setup github
-
-# Inspect documentation metrics & bundle sizes
-npx docboot stats
-
-# Generate production assets (favicon, OG social banner, PWA manifest)
-npx docboot generate assets
 ```
+
+[![npm version](https://img.shields.io/npm/v/docboot.svg?color=3b82f6)](https://www.npmjs.com/package/docboot)
+[![license](https://img.shields.io/github/license/litepacks/docboot.svg)](LICENSE)
+[![tests](https://img.shields.io/badge/tests-passing-emerald.svg)](tests/)
 
 ---
 
-## 🚀 CLI Commands & Flags
+## 💡 Why Docboot?
 
-### Commands
+Traditional documentation frameworks require initializing a dedicated frontend application, configuring complex bundlers (Vite, Webpack, Astro), managing JavaScript framework dependencies, and moving your documentation files into framework-specific folder structures.
 
-| Command | Description |
-| :--- | :--- |
-| `docboot init [dir]` | Scaffolds starter `docboot.config.js` and starter documentation files |
-| `docboot init config` | Generates only `docboot.config.js` with TypeScript/JSDoc types |
-| `docboot [dir]` | Discovers Markdown files, builds, and starts dev server with SSE live reload |
-| `docboot dev [dir]` | Explicit dev server mode |
-| `docboot build [dir]` | Compiles static HTML, assets, and search index to `dist/` |
-| `docboot serve [dir]` | Serves the production `dist/` directory locally |
-| `docboot doctor [dir]` | Validates broken internal links, anchors, images, duplicate routes, and frontmatter health |
-| `docboot setup [github]` | Configures GitHub Actions workflow (`.github/workflows/docs.yml`) for GitHub Pages |
-| `docboot stats [dir]` | Inspects documentation word/page counts, build times, and bundle sizes |
-| `docboot clean [dir]` | Clears the local incremental build cache directory (`.docboot/`) |
-| `docboot generate [assets]` | Generates production assets (SVG favicon, OG banner, PWA web manifest) |
-
-### Flags
-
-| Flag | Long Flag | Description |
-| :--- | :--- | :--- |
-| `-b` | `--build` | Build static site |
-| `-s` | `--serve` | Serve static production build |
-| `-o` | `--open` | Open site in default browser |
-| `-p <port>`| `--port <port>` | Custom port (default: `3000`) |
-| `-c` | `--clean` | Clean cache and output folder before build |
-| | `--no-cache` | Bypass reading and writing build cache |
-| | `--dry-run` | Preview setup actions without modifying files |
-| `-f` | `--force` | Overwrite existing files when allowed |
-| | `--github` | Include GitHub Pages health checks in `docboot doctor` |
-| `-q` | `--quiet` | Mute non-error console output |
-| `-v` | `--verbose` | Enable verbose error logging |
-| | `--pwa` | Generate PWA manifest and offline support |
-| `-h` | `--help` | Display help menu |
-| | `--version` | Display version |
-
-### Combined Flags
-
-Short flags can be combined naturally:
-
-```bash
-docboot . -bo      # Build + open browser
-docboot . -so      # Serve + open browser
-docboot . -bc      # Clean build
-```
-
----
-
-## 🐙 GitHub Pages Deployment (`docboot setup github`)
-
-Prepare your documentation project for automated deployment to GitHub Pages via official GitHub Actions without requiring personal access tokens, GitHub API access, or remote CLI mutations:
-
-```bash
-docboot setup github
-
-git add .
-git commit -m "add docs workflow"
-git push
-```
-
-### Features:
-- **Automatic Detection**: Remote URL $\rightarrow$ `owner/repository`, default branch (`main`), package manager (`npm`, `pnpm`, `yarn`, `bun`), and Node.js version.
-- **Base Path Inference**: Normal repos default to `/repository/`; user/org pages (`owner.github.io`) and custom domains default to `/`.
-- **Workflow Generation**: Creates `.github/workflows/docs.yml` using official GitHub Actions (`actions/checkout@v4`, `actions/setup-node@v4`, `actions/upload-pages-artifact@v3`, `actions/deploy-pages@v4`).
-- **Doctor Diagnostic Integration**: Check deployment readiness with `docboot doctor --github`.
-- **Dry-Run & Overwrite Protection**: Preview with `--dry-run` and protect custom workflows without `--force`.
-
----
-
-## 📁 File Structure & Routing Convention
-
-Zero-config automatic router discovers Markdown files and preserves folder hierarchy:
+**Docboot is different:**
 
 ```text
-docs/
-├── README.md               -> /
-├── 01-getting-started.md   -> /getting-started
-├── guide/
-│   ├── 01-installation.md  -> /guide/installation
-│   └── 02-state.md         -> /guide/state
-└── api/
-    └── runtime.md          -> /api/runtime
+Traditional docs tools:
+  npm create docs-app ──► Configure framework ──► Move files ──► Maintain dependencies
+
+Docboot workflow:
+  cd your-project ──► npx docboot .
 ```
 
-1. **Clean SEO-friendly routes** (`/`, `/getting-started`, `/guide/installation`, `/guide/state`, `/api/runtime`).
-2. **Numeric prefix stripping**: `01-getting-started.md` produces `/getting-started` while preserving natural sort order.
-3. **Automatic Category Hubs**: Intermediate folders without `index.md` automatically get modern card grid index pages.
-4. **Hierarchical collapsible sidebar**.
-5. **Interactive breadcrumbs with in-page text size stepper**.
-6. **Next and previous document pagination links**.
-7. **Heading slug permalinks (`#`) with table-of-contents scroll spy**.
-8. **Instant SPA Navigation with Top Loading Bar**: Zero-latency page transitions with background link prefetching and an animated top progress bar.
+- **No separate docs project** to scaffold and maintain
+- **No framework setup** (React, Vue, or JSX)
+- **No file migration** — point directly at your existing Markdown directory
+- **No required configuration** — sensible defaults for routes, navigation, search, and themes
 
 ---
 
-## 🔗 Automatic Internal Link Resolution
+## ⚡ Core Pillars
 
-Relative file links (`.md` / `.markdown`) written in your Markdown files are automatically transformed into clean web routes at build time:
+### 1. Zero-Config by Default
+Point Docboot at any Markdown folder. Clean URLs, numeric prefix sorting, hierarchical sidebars, breadcrumbs, table-of-contents scroll spy, and search indexes are built automatically.
 
-| Markdown Link | Resolved Web Route |
-| :--- | :--- |
-| `[Installation](./installation.md)` | `/getting-started/installation` |
-| `[Architecture](../concepts/architecture.md#c4)` | `/concepts/architecture#c4` |
-| `[Home](../README.md)` | `/` |
-| `[Guide](/guide/README.md)` | `/guide` |
-| `[State](./state.md#computed)` | `/guide/state#computed` |
-| `[GitHub](https://github.com/...)` | External links remain untouched (`target="_blank"`) |
+### 2. Static by Default
+Markdown files and code blocks are compiled ahead of time into portable, standalone static HTML with zero client-side parser dependencies.
+
+### 3. In-Browser Local Search
+No external search services and no per-query network requests. The pre-compiled index is loaded on demand and queried locally in memory with MiniSearch (`Cmd + K`).
+
+### 4. Built-in Docs Tooling
+Validate internal cross-links, missing images, and route conflicts with `docboot doctor`, and inspect documentation metrics with `docboot stats`.
 
 ---
 
-## 🧩 Rich Documentation Primitives
+## 🚀 Quick Start
 
-Build richer technical documentation without needing React, JSX, or complex setups:
+### 1. Local Development
 
-### Accessible Tabs & Synced Groups (`:::tabs`)
+Start the development server with live reload:
 
-```markdown
+```bash
+cd my-project
+npx docboot .
+```
+
+Or target a specific folder and open your browser automatically:
+
+```bash
+npx docboot ./docs -o
+```
+
+### 2. Static Production Build
+
+Compile standalone static assets to `./dist`:
+
+```bash
+npx docboot build
+```
+
+Preview compiled output locally:
+
+```bash
+npx docboot serve
+```
+
+---
+
+## 🧩 Rich Primitives Without MDX
+
+Build expressive technical documentation using native Markdown directives without JSX:
+
 :::tabs group="package-manager"
 ::tab npm
 ```bash
@@ -164,212 +97,115 @@ npm install docboot
 pnpm add docboot
 ```
 :::
+
+- **Callouts**: `:::note`, `:::tip`, `:::warning`, `:::danger`, `:::info`
+- **Tabs & Synced Groups**: Synchronized tab selection across articles with `group="..."`
+- **Code Groups**: Tabbed multi-language snippets (`:::code-group`)
+- **Collapsible Details**: Native accessible `<details>` sections (`:::details`)
+- **Mermaid Diagrams**: Interactive flowcharts and sequence graphs with dark/light mode awareness
+- **Safe Embeds**: Sandboxed video and interactive demos with strict domain allowlists
+- **Galleries & Lightbox**: Responsive image grids and zoom-in lightbox modals
+
+---
+
+## 🩺 Built-in Diagnostics & Tooling
+
+### `docboot doctor`
+Inspects documentation health and flags broken links, anchor mismatches, missing images, and route conflicts:
+
+```bash
+docboot doctor
 ```
 
-### Code Groups (`:::code-group`)
+```text
+  ▲ Docboot Doctor — Health Check
 
-```markdown
-:::code-group
-```js [JavaScript]
-export const port = 3000;
-```
-```ts [TypeScript]
-export const port: number = 3000;
-```
-:::
+  ✔ 12 pages scanned
+  ✔ 48 internal links verified
+  ✔ 8 local image references verified
+  
+  Found 0 errors in 18ms.
 ```
 
-### Collapsible Details (`:::details`)
+### `docboot stats`
+Analyzes documentation metrics, bundle weights, and cache hit rates:
 
-```markdown
-:::details Advanced Configuration
-Detailed configuration options go here.
-:::
+```bash
+docboot stats
 ```
 
-### Custom Text Size Directives
+### `docboot setup github`
+Generates an official GitHub Actions workflow (`.github/workflows/docs.yml`) for publishing to GitHub Pages:
 
-```markdown
-::: lead
-This is an introductory lead paragraph styled with larger typography.
-:::
-
-::: text-sm
-Fine print or smaller auxiliary notes.
-:::
-```
-
-### Safe Embeds (`:::embed`)
-
-```markdown
-:::embed youtube
-src: https://youtube.com/watch?v=dQw4w9WgXcQ
-title: Walkthrough Video
-ratio: 16/9
-:::
-```
-
-### Image Lightbox & Galleries (`:::gallery`)
-
-```markdown
-:::gallery
-- src: ./screens/home.png
-  alt: Home screen
-  caption: Main dashboard
-
-- src: ./screens/search.png
-  alt: Search
-  caption: Instant search modal
-:::
+```bash
+docboot setup github
 ```
 
 ---
 
-## 📄 Frontmatter & Source Code Integration
+## 🛠️ CLI Reference
 
-Add YAML frontmatter to control page metadata, sorting, and source code links:
-
-```yaml
----
-title: State Management
-description: Reactive state architecture
-order: 3
-source: "src/core/state.js"
-draft: false
----
-```
-
-When `source` is provided in frontmatter (or `editLink` / `sourceLink` in configuration), Docboot renders:
-- An interactive **`⌥ Source: path/to/file ↗`** badge at the top of the article.
-- **`Edit this page on GitHub ✎`** and **`View source ⌥`** action links in the page footer.
-
----
-
-## 🎨 Themes, Color Presets & Typography
-
-Docboot provides a complete reader customization system with zero-flicker anti-flash loading:
-
-- **3 Theme Modes**: `light`, `dark`, `system` (instant 1-click toggle).
-- **6 Color Presets**:
-  - 🔘 **Zinc** (Default): Minimalist & clean UI (Tailwind & Linear style)
-  - 🌊 **Ocean**: Deep navy & cyan indigo
-  - 🌲 **Emerald**: Slate & vibrant mint green (Supabase / Mintlify style)
-  - 🔮 **Violet**: Neon purple & amethyst (Vite / Nuxt style)
-  - ☀️ **Amber**: Warm obsidian & amber gold (Rust / Astro / Claude style)
-  - 🌹 **Rose**: Modern ruby & coral pink
-- **Dynamic Font Size Scaling (3 Levels)**:
-  - Header & Breadcrumb stepper: `[A- 100% A+]`
-  - Right sidebar TOC stepper
-  - Settings palette dropdown selector (`Small`, `Medium`, `Large`, `Extra Large`)
-- **Font Family Selector**:
-  - **Sans (`Inter`)**: Modern & clean technical font
-  - **Outfit (`Outfit / Plus Jakarta`)**: Modern geometric display
-  - **Serif (`Editorial`)**: Long-form article reading mode
-  - **Sys (`Native System`)**: OS native typography (SF Pro, Segoe UI, Ubuntu)
-
----
-
-## 💻 Code Blocks & Mermaid Diagrams
-
-- **15+ Languages Supported**: Fast build-time Prism syntax highlighting.
-- **Mac Terminal Header**: macOS window controls (red/yellow/green), title/filename, and language badge (e.g. ````js title="server.js"````).
-- **One-Click Copy**: Animated copy button with instant visual feedback.
-- **Interactive Mermaid Diagrams**: Responsive diagrams with auto dark/light theme switching and a **Large Modal View** supporting interactive SVG pan & zoom.
-
-````markdown
-```mermaid
-graph TD
-  A[Markdown] --> B[Docboot]
-  B --> C[Static HTML]
-```
-````
-
----
-
-## 🔍 Local Client-Side Search (MiniSearch & Cmd + K)
-
-Documentation search runs entirely client-side with zero latency powered by **MiniSearch**:
-
-- **Zero External Dependencies & Network Requests**: No Algolia or external search backend required.
-- **Section-Level Deep Indexing**: Granular search results with direct heading (`#section`) permalinks.
-- **Intelligent Search Engine**: Exact matching, prefix search, fuzzy matching / typo tolerance, and ranking.
-- **Weighted Boosting**: `title` (5), `headings` (3), `section` (2), `text` (1).
-- **Lazy Loading**: MiniSearch runtime and search index are loaded on-demand only when triggered via `Cmd + K`, `Ctrl + K`, or clicking search bar.
-- **Keyboard Navigation**: Arrow Up / Down navigation, Enter to open, Esc to close.
-
----
-
-## 📊 Built-in Analytics & Automatic SPA Tracking
-
-Docboot supports zero-latency privacy-friendly analytics and Google Analytics with automatic `page_view` tracking on soft SPA navigation:
-
-```javascript title="docboot.config.js"
-export default {
-  analytics: {
-    // 1. Google Analytics (GA4)
-    google: { id: "G-XXXXXXXXXX" },
-
-    // 2. Plausible Analytics (Privacy-first)
-    plausible: { domain: "docs.example.com", apiHost: "https://plausible.io" },
-
-    // 3. Umami Analytics
-    umami: { websiteId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", src: "https://analytics.umami.is/script.js" },
-
-    // 4. Fathom Analytics
-    fathom: { siteId: "XXXXXX" },
-
-    // 5. Microsoft Clarity
-    clarity: { id: "XXXXXXXXXX" },
-
-    // 6. Custom Tracking Snippet
-    custom: `<script defer src="https://my-cdn.com/custom-tracker.js"></script>`
-  }
-};
-```
+| Command | Description |
+| :--- | :--- |
+| **`docboot [dir]`** | Starts local development server with SSE live reload |
+| **`docboot build [dir]`** | Compiles static HTML and assets to `dist/` |
+| **`docboot serve [dir]`** | Serves the static `dist/` folder locally |
+| **`docboot doctor [dir]`** | Diagnoses broken links, missing assets, and route collisions |
+| **`docboot stats [dir]`** | Inspects page/word counts, bundle weights, and build duration |
+| **`docboot setup github`** | Generates GitHub Actions workflow for GitHub Pages |
+| **`docboot generate assets`**| Generates SVG favicons, social preview banners, and PWA manifests |
+| **`docboot clean [dir]`** | Clears the local `.docboot/` incremental cache folder |
 
 ---
 
 ## ⚙️ Configuration (`docboot.config.js`)
 
-Zero-config by default. Create an optional `docboot.config.js` in your root directory to customize:
+Docboot works with **zero configuration**. When customization is required, create an optional `docboot.config.js`:
 
 ```javascript
-// docboot.config.js
 export default {
   title: "My Project Documentation",
-  description: "High-performance documentation site",
+  description: "High-performance developer documentation",
   docs: "./docs",
   out: "./dist",
-  repo: "https://github.com/your-org/my-project",
-  editLink: {
-    pattern: "https://github.com/your-org/my-project/edit/main/docs/:path"
-  },
-  sourceLink: {
-    pattern: "https://github.com/your-org/my-project/blob/main/:path"
-  },
+  repo: "https://github.com/org/my-project",
   theme: {
-    preset: "ocean",         // "zinc" | "ocean" | "emerald" | "violet" | "amber" | "rose"
+    preset: "zinc",          // "zinc" | "ocean" | "emerald" | "violet" | "amber" | "rose"
     defaultMode: "system",   // "system" | "dark" | "light"
-    themeToggle: true,       // Show light/dark mode icon
-    presetMenu: true,        // Show theme & font customizer menu
-    fontSizeControl: true    // Show A- / A+ reading font-size stepper
+    themeToggle: true,       // Dark/light mode switcher
+    presetMenu: true,        // Palette and font customizer
+    fontSizeControl: true    // A- / A+ reading font-size stepper
   },
   search: {
     fuzzy: 0.2,
     prefix: true,
-    maxResults: 10,
-    minQueryLength: 2
+    maxResults: 10
   },
-  pwa: true,                 // Generate offline PWA manifest & service worker
+  pwa: true,
   analytics: {
     google: { id: "G-XXXXXXXXXX" },
     plausible: { domain: "docs.example.com" }
-  },
-  embeds: {
-    allowedDomains: ["youtube.com", "codesandbox.io", "stackblitz.com"]
   }
 };
 ```
+
+---
+
+## 📚 Complete Documentation
+
+Explore the full documentation site at **[https://litepacks.github.io/docboot/](https://litepacks.github.io/docboot/)**:
+
+- [Why Docboot?](https://litepacks.github.io/docboot/getting-started/why-docboot)
+- [Project Structure & Routing](https://litepacks.github.io/docboot/getting-started/project-structure)
+- [Rich Content Primitives](https://litepacks.github.io/docboot/guide/rich-content)
+- [Local Search Architecture](https://litepacks.github.io/docboot/guide/search)
+- [Themes & Customization](https://litepacks.github.io/docboot/guide/themes)
+- [Docboot Doctor](https://litepacks.github.io/docboot/tooling/doctor)
+- [GitHub Pages Deployment](https://litepacks.github.io/docboot/tooling/github-pages)
+- [CLI Reference](https://litepacks.github.io/docboot/reference/cli)
+- [Configuration Reference](https://litepacks.github.io/docboot/reference/configuration)
+- [Architecture & Runtime](https://litepacks.github.io/docboot/advanced/architecture)
+- [Benchmarks & Performance](https://litepacks.github.io/docboot/advanced/benchmarks)
 
 ---
 

@@ -1,49 +1,89 @@
 ---
 title: Mermaid Diagrams & Flowcharts
-description: Visual architecture and workflow diagrams with zero configuration
-order: 5
+description: Visual architecture and workflow diagrams with zero configuration and dark mode support.
+order: 3
 ---
 
 # Mermaid Diagrams
 
-Docboot provides built-in, lazy-loaded **Mermaid** diagram rendering.
+Docboot provides built-in, lazy-loaded **Mermaid** diagram support without plugins or extra configuration.
 
 ---
 
-## 📊 Flowchart Example
+## 1. Flowchart Example
+
+````markdown
+```mermaid
+graph TD
+  MD[Markdown Files] --> Scanner[Filesystem Scanner]
+  Scanner --> Compiler[Markdown Compiler]
+  Compiler --> HTML[Static Semantic HTML]
+  Compiler --> MiniSearch[Local Search Index]
+  HTML --> Dist[dist/ Portable Output]
+  MiniSearch --> Dist
+```
+````
 
 ```mermaid
 graph TD
   MD[Markdown Files] --> Scanner[Filesystem Scanner]
-  Scanner --> AST[Markdown AST & Frontmatter]
-  AST --> HTML[Static Semantic HTML]
-  AST --> MiniSearch[Local Search Index]
-  HTML --> Dist[dist/ Ready for CDN]
+  Scanner --> Compiler[Markdown Compiler]
+  Compiler --> HTML[Static Semantic HTML]
+  Compiler --> MiniSearch[Local Search Index]
+  HTML --> Dist[dist/ Portable Output]
   MiniSearch --> Dist
 ```
 
 ---
 
-## 🔄 Sequence Diagram Example
+## 2. Sequence Diagram Example
 
+````markdown
 ```mermaid
 sequenceDiagram
   autonumber
-  actor User
+  actor Developer
   participant Browser
   participant Docboot
   participant MiniSearch
 
-  User->>Browser: Types docboot .
+  Developer->>Browser: Types npx docboot .
   Browser->>Docboot: Request /
-  Docboot-->>Browser: Instant Static HTML & CSS
-  User->>Browser: Presses Cmd + K
-  Browser->>MiniSearch: Lazy-load Search Engine
-  MiniSearch-->>Browser: Instant Local Results
+  Docboot-->>Browser: Static HTML & CSS
+  Developer->>Browser: Presses Cmd + K
+  Browser->>MiniSearch: Lazy-load Search Runtime
+  MiniSearch-->>Browser: In-Browser Local Search Results
+```
+````
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor Developer
+  participant Browser
+  participant Docboot
+  participant MiniSearch
+
+  Developer->>Browser: Types npx docboot .
+  Browser->>Docboot: Request /
+  Docboot-->>Browser: Static HTML & CSS
+  Developer->>Browser: Presses Cmd + K
+  Browser->>MiniSearch: Lazy-load Search Runtime
+  MiniSearch-->>Browser: In-Browser Local Search Results
 ```
 
 ---
 
-## 💡 How It Works
-- **Lazy Loading**: If a page contains no Mermaid diagrams, **zero** Mermaid JavaScript is loaded (preserving ultra-lightweight page weight).
-- **Dark & Light Mode Integration**: Diagrams automatically adapt to your active theme mode (`dark` / `light`) and re-render on the fly when switching themes.
+## Features
+
+- **Lazy Loading**: If a document contains no diagrams, Mermaid JavaScript is **never** downloaded.
+- **Theme-Aware Rendering**: Diagrams automatically adapt to your active theme mode (`dark` / `light`) and re-render seamlessly when you toggle themes.
+- **Interactive Modal & Pan-Zoom**: Hover over any diagram and click **Expand Diagram** to open a full-screen view with interactive pan and zoom controls for large architecture graphs.
+
+---
+
+## Next Steps
+
+- [Local Search Architecture](/guide/search) — Client-side search indexing
+- [Themes & Customization](/guide/themes) — Color presets and typography
+- [Rich Content Primitives](/guide/rich-content) — Callouts, tabs, and details
