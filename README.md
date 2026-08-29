@@ -299,6 +299,36 @@ Documentation search runs entirely client-side with zero latency powered by **Mi
 
 ---
 
+## 📊 Built-in Analytics & Automatic SPA Tracking
+
+Docboot supports zero-latency privacy-friendly analytics and Google Analytics with automatic `page_view` tracking on soft SPA navigation:
+
+```javascript title="docboot.config.js"
+export default {
+  analytics: {
+    // 1. Google Analytics (GA4)
+    google: { id: "G-XXXXXXXXXX" },
+
+    // 2. Plausible Analytics (Privacy-first)
+    plausible: { domain: "docs.example.com", apiHost: "https://plausible.io" },
+
+    // 3. Umami Analytics
+    umami: { websiteId: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx", src: "https://analytics.umami.is/script.js" },
+
+    // 4. Fathom Analytics
+    fathom: { siteId: "XXXXXX" },
+
+    // 5. Microsoft Clarity
+    clarity: { id: "XXXXXXXXXX" },
+
+    // 6. Custom Tracking Snippet
+    custom: `<script defer src="https://my-cdn.com/custom-tracker.js"></script>`
+  }
+};
+```
+
+---
+
 ## ⚙️ Configuration (`docboot.config.js`)
 
 Zero-config by default. Create an optional `docboot.config.js` in your root directory to customize:
@@ -318,14 +348,22 @@ export default {
     pattern: "https://github.com/your-org/my-project/blob/main/:path"
   },
   theme: {
-    preset: "ocean",       // "zinc" | "ocean" | "emerald" | "violet" | "amber" | "rose"
-    defaultMode: "system"  // "system" | "dark" | "light"
+    preset: "ocean",         // "zinc" | "ocean" | "emerald" | "violet" | "amber" | "rose"
+    defaultMode: "system",   // "system" | "dark" | "light"
+    themeToggle: true,       // Show light/dark mode icon
+    presetMenu: true,        // Show theme & font customizer menu
+    fontSizeControl: true    // Show A- / A+ reading font-size stepper
   },
   search: {
     fuzzy: 0.2,
     prefix: true,
     maxResults: 10,
     minQueryLength: 2
+  },
+  pwa: true,                 // Generate offline PWA manifest & service worker
+  analytics: {
+    google: { id: "G-XXXXXXXXXX" },
+    plausible: { domain: "docs.example.com" }
   },
   embeds: {
     allowedDomains: ["youtube.com", "codesandbox.io", "stackblitz.com"]

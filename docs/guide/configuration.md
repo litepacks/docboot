@@ -52,8 +52,13 @@ export default {
 | `repo` | `string` | `""` | GitHub repository URL for header icon link |
 | `editLink` | `boolean \| object` | `null` | Enable "Edit this page on GitHub" footer link |
 | `sourceLink` | `boolean \| object` | `null` | Enable "View source" footer link |
-| `theme.preset`| `string` | `"zinc"` | Accent color palette |
-| `theme.defaultMode` | `string` | `"system"` | Default theme mode |
+| `theme.preset`| `string` | `"zinc"` | Accent color palette (`"zinc"`, `"ocean"`, `"emerald"`, `"violet"`, `"amber"`, `"rose"`) |
+| `theme.defaultMode` | `string` | `"system"` | Default theme mode (`"system"`, `"dark"`, `"light"`) |
+| `theme.themeToggle` | `boolean` | `true` | Show dark/light/system mode toggle icon |
+| `theme.presetMenu` | `boolean` | `true` | Show theme color palette & typography switcher menu |
+| `theme.fontSizeControl` | `boolean` | `true` | Show `A-` / `A+` font size stepper buttons |
+| `pwa` | `boolean` | `false` | Enable Progressive Web App offline caching and manifest generation |
+| `analytics` | `object` | `{}` | Analytics configuration (GA4, Plausible, Umami, Fathom, Clarity, Custom) |
 
 ---
 
