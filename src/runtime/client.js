@@ -783,34 +783,60 @@
       }
     }
 
-    if (window.mermaid) {
-      renderAllWith(window.mermaid);
+    function triggerRender() {
+      if (window.mermaid) {
+        renderAllWith(window.mermaid);
+        return;
+      }
+
+      if (mermaidLoading) return;
+      mermaidLoading = true;
+
+      // Load local mermaid.min.js script on demand
+      var script = document.createElement('script');
+      script.src = resolveBase('/assets/mermaid.min.js');
+      script.onload = function() {
+        if (window.mermaid) {
+          renderAllWith(window.mermaid);
+        }
+      };
+      script.onerror = function() {
+        // Fallback to CDN ESM import if local asset fails
+        import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')
+          .then(function(m) {
+            window.mermaid = m.default || m;
+            renderAllWith(window.mermaid);
+          })
+          .catch(function(err) {
+            console.warn('[docboot] Mermaid failed to load:', err);
+          });
+      };
+      document.head.appendChild(script);
+    }
+
+    if (!('IntersectionObserver' in window) || forceRerender) {
+      triggerRender();
       return;
     }
 
-    if (mermaidLoading) return;
-    mermaidLoading = true;
+    if (mermaidObserver) {
+      mermaidObserver.disconnect();
+    }
 
-    // Load local mermaid.min.js script
-    var script = document.createElement('script');
-    script.src = resolveBase('/assets/mermaid.min.js');
-    script.onload = function() {
-      if (window.mermaid) {
-        renderAllWith(window.mermaid);
+    mermaidObserver = new IntersectionObserver(function(entries) {
+      var shouldLoad = entries.some(function(entry) { return entry.isIntersecting; });
+      if (shouldLoad) {
+        triggerRender();
+        if (mermaidObserver) {
+          mermaidObserver.disconnect();
+          mermaidObserver = null;
+        }
       }
-    };
-    script.onerror = function() {
-      // Fallback to CDN ESM import if local asset fails
-      import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')
-        .then(function(m) {
-          window.mermaid = m.default || m;
-          renderAllWith(window.mermaid);
-        })
-        .catch(function(err) {
-          console.warn('[docboot] Mermaid failed to load:', err);
-        });
-    };
-    document.head.appendChild(script);
+    }, { rootMargin: '300px 0px' });
+
+    elements.forEach(function(el) {
+      mermaidObserver.observe(el);
+    });
   }
 
   // --- 6.1 Interactive Mermaid Diagram Zoom & Pan Modal ---
