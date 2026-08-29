@@ -1,9 +1,8 @@
 /**
  * Docboot Presentation Client Runtime (<4KB Zero-dependency)
- * Handles 2D slide navigation, slide counter pagination, smooth slide scrolling,
- * on-demand Mermaid diagram rendering, keyboard shortcuts, touch gestures, URL hash sync,
- * fullscreen mode, presenter view, slide overview grid, shortcuts cheat-sheet,
- * local timer, and live reload.
+ * Handles 2D slide navigation, incremental fragment reveals, laser pointer,
+ * canvas ink sketching, multi-window BroadcastChannel sync, on-demand Mermaid,
+ * slide counter pagination, smooth slide scrolling, fullscreen, and live reload.
  */
 
 (function () {
@@ -17,12 +16,20 @@
   var isPresenterOpen = false;
   var isOverviewOpen = false;
   var isHelpOpen = false;
+  var isLaserActive = false;
+  var isDrawingActive = false;
+  var currentColor = '#ef4444';
+  var isDrawing = false;
+  var lastDrawX = 0;
+  var lastDrawY = 0;
+
   var timerSeconds = 0;
   var timerInterval = null;
   var isTimerRunning = false;
   var notesFontSize = 1.4;
   var mermaidLoaded = false;
 
+  // DOM Elements
   var progressBar = document.getElementById('docboot-presentation-progress');
   var slideCounter = document.getElementById('docboot-presentation-counter');
   var verticalNav = document.getElementById('docboot-vertical-nav');
@@ -30,18 +37,42 @@
   var overviewModal = document.getElementById('docboot-overview-modal');
   var helpModal = document.getElementById('docboot-help-modal');
 
+  var laserEl = document.getElementById('docboot-laser-pointer');
+  var canvasEl = document.getElementById('docboot-drawing-canvas');
+  var drawToolbar = document.getElementById('docboot-drawing-toolbar');
+  var drawCtx = canvasEl ? canvasEl.getContext('2d') : null;
+
   var presenterCurrent = document.getElementById('docboot-presenter-current');
   var presenterNext = document.getElementById('docboot-presenter-next');
   var presenterNotes = document.getElementById('docboot-presenter-notes');
   var presenterTimer = document.getElementById('docboot-presenter-timer-display');
   var presenterCounter = document.getElementById('docboot-presenter-counter-display');
+  var presenterPopoutBtn = document.getElementById('docboot-presenter-btn-popout');
+
+  // Multi-Window Synchronization Channel
+  var syncChannel = window.BroadcastChannel ? new BroadcastChannel('docboot-presentation-sync') : null;
+
+  if (syncChannel) {
+    syncChannel.onmessage = function (e) {
+      if (!e.data) return;
+      if (e.data.type === 'slide') {
+        updateSlide(e.data.index, false, null, false);
+      } else if (e.data.type === 'theme') {
+        if (e.data.theme === 'dark') document.documentElement.classList.add('dark');
+        else document.documentElement.classList.remove('dark');
+      } else if (e.data.type === 'timer') {
+        if (e.data.action === 'start') startTimer(false);
+        else if (e.data.action === 'pause') pauseTimer(false);
+        else if (e.data.action === 'reset') resetTimer(false);
+      }
+    };
+  }
 
   // --- 1. URL Hash Resolution (#12 or #7.3) ---
   function getSlideFromHash() {
     var hash = window.location.hash.replace(/^#/, '').trim();
     if (!hash) return 1;
 
-    // Check h.v notation (e.g. 2.1, 2.2)
     if (hash.includes('.')) {
       var parts = hash.split('.');
       var h = parseInt(parts[0], 10);
@@ -129,7 +160,6 @@
           renderAll(window.mermaid);
         })
         .catch(function () {
-          // If offline / no cdn, fallback to revealing code blocks
           diagrams.forEach(function (el) {
             var loader = el.parentElement ? el.parentElement.querySelector('.docboot-mermaid-loading') : null;
             if (loader) loader.style.display = 'none';
@@ -139,7 +169,7 @@
     }
   }
 
-  function updateSlide(targetIndex, pushHistory, direction) {
+  function updateSlide(targetIndex, pushHistory, direction, broadcast) {
     if (targetIndex < 1) targetIndex = 1;
     if (targetIndex > totalSlides) targetIndex = totalSlides;
 
@@ -152,7 +182,7 @@
       if (i + 1 === currentSlide) {
         slide.classList.add('active');
         slide.setAttribute('aria-hidden', 'false');
-        slide.scrollTop = 0; // Reset scroll position on new slide
+        slide.scrollTop = 0;
 
         // Auto-scale slide content if slightly overflowing to fit perfectly
         slide.style.transform = '';
@@ -175,7 +205,6 @@
           setTimeout(function (s) { s.classList.remove('slide-v-enter-up'); }, 250, slide);
         }
 
-        // Render Mermaid diagrams on active slide
         renderMermaidInSlide(slide);
       } else {
         slide.classList.remove('active');
@@ -224,7 +253,7 @@
       slideCounter.textContent = currentSlide + ' / ' + totalSlides;
     }
 
-    // Update URL hash: clean "#12" (or supporting back/forward)
+    // Update URL hash
     if (pushHistory !== false) {
       var targetHash = '#' + currentSlide;
       if (window.location.hash !== targetHash) {
@@ -232,12 +261,43 @@
       }
     }
 
+    // Broadcast across windows if active
+    if (broadcast !== false && syncChannel) {
+      syncChannel.postMessage({ type: 'slide', index: currentSlide });
+    }
+
     // Update Presenter View if active
     updatePresenterView();
   }
 
-  // --- 4. Directional Navigation (Horizontal + Vertical 2D Grid) ---
+  // --- 4. Incremental Reveal Fragments (:::fragment) ---
+  function revealNextFragment() {
+    var curSlideEl = slides[currentSlide - 1];
+    if (!curSlideEl) return false;
+
+    var hiddenFragments = Array.from(curSlideEl.querySelectorAll('.docboot-fragment:not(.visible)'));
+    if (hiddenFragments.length > 0) {
+      hiddenFragments[0].classList.add('visible');
+      return true; // Consumed action
+    }
+    return false;
+  }
+
+  function hideLastFragment() {
+    var curSlideEl = slides[currentSlide - 1];
+    if (!curSlideEl) return false;
+
+    var visibleFragments = Array.from(curSlideEl.querySelectorAll('.docboot-fragment.visible'));
+    if (visibleFragments.length > 0) {
+      visibleFragments[visibleFragments.length - 1].classList.remove('visible');
+      return true; // Consumed action
+    }
+    return false;
+  }
+
+  // --- 5. Directional Navigation (Horizontal + Vertical 2D Grid) ---
   function nextHorizontal() {
+    if (revealNextFragment()) return;
     var cur = getSlideMeta(currentSlide);
     if (!cur) return;
     for (var i = 0; i < slides.length; i++) {
@@ -253,6 +313,7 @@
   }
 
   function prevHorizontal() {
+    if (hideLastFragment()) return;
     var cur = getSlideMeta(currentSlide);
     if (!cur) return;
     for (var i = slides.length - 1; i >= 0; i--) {
@@ -316,12 +377,14 @@
   }
 
   function nextSlide() {
+    if (revealNextFragment()) return;
     if (currentSlide < totalSlides) {
       updateSlide(currentSlide + 1);
     }
   }
 
   function prevSlide() {
+    if (hideLastFragment()) return;
     if (currentSlide > 1) {
       updateSlide(currentSlide - 1);
     }
@@ -335,7 +398,114 @@
     updateSlide(totalSlides);
   }
 
-  // --- 5. Overview Grid & Help Modals ---
+  // --- 6. Laser Pointer Controller (L key) ---
+  function toggleLaser() {
+    isLaserActive = !isLaserActive;
+    if (laserEl) {
+      if (isLaserActive) {
+        laserEl.classList.add('active');
+        document.body.style.cursor = 'none';
+      } else {
+        laserEl.classList.remove('active');
+        document.body.style.cursor = '';
+      }
+    }
+  }
+
+  document.addEventListener('mousemove', function (e) {
+    if (isLaserActive && laserEl) {
+      laserEl.style.left = e.clientX + 'px';
+      laserEl.style.top = e.clientY + 'px';
+    }
+  });
+
+  document.addEventListener('mousedown', function () {
+    if (isLaserActive && laserEl) {
+      laserEl.classList.add('click');
+    }
+  });
+
+  document.addEventListener('mouseup', function () {
+    if (isLaserActive && laserEl) {
+      laserEl.classList.remove('click');
+    }
+  });
+
+  // --- 7. Drawing Canvas Controller (D key) ---
+  function resizeCanvas() {
+    if (canvasEl) {
+      canvasEl.width = window.innerWidth;
+      canvasEl.height = window.innerHeight;
+    }
+  }
+
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function toggleDrawing() {
+    isDrawingActive = !isDrawingActive;
+    if (canvasEl && drawToolbar) {
+      if (isDrawingActive) {
+        canvasEl.classList.add('drawing-active');
+        drawToolbar.classList.add('active');
+      } else {
+        canvasEl.classList.remove('drawing-active');
+        drawToolbar.classList.remove('active');
+      }
+    }
+  }
+
+  function clearDrawing() {
+    if (drawCtx && canvasEl) {
+      drawCtx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+    }
+  }
+
+  if (canvasEl && drawCtx) {
+    canvasEl.addEventListener('mousedown', function (e) {
+      if (!isDrawingActive) return;
+      isDrawing = true;
+      lastDrawX = e.clientX;
+      lastDrawY = e.clientY;
+    });
+
+    canvasEl.addEventListener('mousemove', function (e) {
+      if (!isDrawingActive || !isDrawing) return;
+      drawCtx.beginPath();
+      drawCtx.moveTo(lastDrawX, lastDrawY);
+      drawCtx.lineTo(e.clientX, e.clientY);
+      drawCtx.strokeStyle = currentColor;
+      drawCtx.lineWidth = 3.5;
+      drawCtx.lineCap = 'round';
+      drawCtx.lineJoin = 'round';
+      drawCtx.stroke();
+      lastDrawX = e.clientX;
+      lastDrawY = e.clientY;
+    });
+
+    canvasEl.addEventListener('mouseup', function () { isDrawing = false; });
+    canvasEl.addEventListener('mouseleave', function () { isDrawing = false; });
+  }
+
+  // Draw Toolbar Color Pickers
+  if (drawToolbar) {
+    var colorBtns = Array.from(drawToolbar.querySelectorAll('.docboot-color-picker-btn'));
+    colorBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        colorBtns.forEach(function (b) { b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        currentColor = btn.getAttribute('data-color') || '#ef4444';
+      });
+    });
+
+    var clearBtn = document.getElementById('docboot-draw-btn-clear');
+    if (clearBtn) clearBtn.addEventListener('click', clearDrawing);
+
+    var closeDrawBtn = document.getElementById('docboot-draw-btn-close');
+    if (closeDrawBtn) closeDrawBtn.addEventListener('click', toggleDrawing);
+  }
+
+  // --- 8. Overview Grid & Help Modals ---
   function toggleOverview() {
     isOverviewOpen = !isOverviewOpen;
     if (overviewModal) {
@@ -358,7 +528,7 @@
     }
   }
 
-  // --- 6. Fullscreen Controller ---
+  // --- 9. Fullscreen Controller ---
   function toggleFullscreen() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
       var el = document.documentElement;
@@ -376,7 +546,7 @@
     }
   }
 
-  // --- 7. Presenter Mode & Timer ---
+  // --- 10. Presenter Mode & Timer ---
   function updatePresenterView() {
     if (!presenterView) return;
 
@@ -412,7 +582,7 @@
     return (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
   }
 
-  function startTimer() {
+  function startTimer(broadcast) {
     if (isTimerRunning) return;
     isTimerRunning = true;
     timerInterval = setInterval(function () {
@@ -421,18 +591,27 @@
         presenterTimer.textContent = formatTime(timerSeconds);
       }
     }, 1000);
+    if (broadcast !== false && syncChannel) {
+      syncChannel.postMessage({ type: 'timer', action: 'start' });
+    }
   }
 
-  function pauseTimer() {
+  function pauseTimer(broadcast) {
     isTimerRunning = false;
     if (timerInterval) clearInterval(timerInterval);
+    if (broadcast !== false && syncChannel) {
+      syncChannel.postMessage({ type: 'timer', action: 'pause' });
+    }
   }
 
-  function resetTimer() {
-    pauseTimer();
+  function resetTimer(broadcast) {
+    pauseTimer(false);
     timerSeconds = 0;
     if (presenterTimer) {
       presenterTimer.textContent = '00:00';
+    }
+    if (broadcast !== false && syncChannel) {
+      syncChannel.postMessage({ type: 'timer', action: 'reset' });
     }
   }
 
@@ -449,10 +628,20 @@
     }
   }
 
-  // --- 8. Theme Switcher ---
+  if (presenterPopoutBtn) {
+    presenterPopoutBtn.addEventListener('click', function () {
+      var targetUrl = window.location.href.split('?')[0] + '?presenter=1' + window.location.hash;
+      window.open(targetUrl, 'docboot_presenter_view', 'width=1120,height=760,menubar=no,toolbar=no,location=no');
+      if (isPresenterOpen) togglePresenter();
+    });
+  }
+
+  // --- 11. Theme Switcher ---
   function toggleTheme() {
     var html = document.documentElement;
     var isDark = html.classList.contains('dark');
+    var targetTheme = isDark ? 'light' : 'dark';
+
     if (isDark) {
       html.classList.remove('dark');
       localStorage.setItem('docboot-theme', 'light');
@@ -461,16 +650,18 @@
       localStorage.setItem('docboot-theme', 'dark');
     }
 
-    // Re-render Mermaid on active slide with updated theme
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'theme', theme: targetTheme });
+    }
+
     var curSlideEl = slides[currentSlide - 1];
     if (curSlideEl && window.mermaid) {
       renderMermaidInSlide(curSlideEl);
     }
   }
 
-  // --- 9. Event Listeners ---
+  // --- 12. Event Listeners ---
   document.addEventListener('keydown', function (e) {
-    // Ignore input fields
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
       return;
     }
@@ -479,15 +670,19 @@
       case 'ArrowRight':
       case 'l':
       case 'L':
-        e.preventDefault();
-        nextHorizontal();
+        if (!e.metaKey && !e.ctrlKey) {
+          e.preventDefault();
+          nextHorizontal();
+        }
         break;
 
       case 'ArrowLeft':
       case 'h':
       case 'H':
-        e.preventDefault();
-        prevHorizontal();
+        if (!e.metaKey && !e.ctrlKey) {
+          e.preventDefault();
+          prevHorizontal();
+        }
         break;
 
       case 'ArrowDown':
@@ -518,6 +713,22 @@
         if (!e.metaKey && !e.ctrlKey) {
           e.preventDefault();
           togglePresenter();
+        }
+        break;
+
+      case 'd':
+      case 'D':
+        if (!e.metaKey && !e.ctrlKey) {
+          e.preventDefault();
+          toggleDrawing();
+        }
+        break;
+
+      case 'c':
+      case 'C':
+        if (!e.metaKey && !e.ctrlKey && isDrawingActive) {
+          e.preventDefault();
+          clearDrawing();
         }
         break;
 
@@ -557,7 +768,11 @@
         break;
 
       case 'Escape':
-        if (isOverviewOpen) {
+        if (isDrawingActive) {
+          toggleDrawing();
+        } else if (isLaserActive) {
+          toggleLaser();
+        } else if (isOverviewOpen) {
           toggleOverview();
         } else if (isHelpOpen) {
           toggleHelp();
@@ -568,7 +783,7 @@
     }
   });
 
-  // URL Hash Changes (Browser Back/Forward)
+  // URL Hash Changes
   window.addEventListener('popstate', function () {
     updateSlide(getSlideFromHash(), false);
   });
@@ -613,6 +828,12 @@
 
   var nextBtn = document.getElementById('docboot-btn-next');
   if (nextBtn) nextBtn.addEventListener('click', nextSlide);
+
+  var laserBtn = document.getElementById('docboot-btn-laser');
+  if (laserBtn) laserBtn.addEventListener('click', toggleLaser);
+
+  var drawBtn = document.getElementById('docboot-btn-draw');
+  if (drawBtn) drawBtn.addEventListener('click', toggleDrawing);
 
   var overviewBtn = document.getElementById('docboot-btn-overview');
   if (overviewBtn) overviewBtn.addEventListener('click', toggleOverview);
@@ -675,13 +896,13 @@
   if (presenterCloseBtn) presenterCloseBtn.addEventListener('click', togglePresenter);
 
   var timerStartBtn = document.getElementById('docboot-timer-btn-start');
-  if (timerStartBtn) timerStartBtn.addEventListener('click', startTimer);
+  if (timerStartBtn) timerStartBtn.addEventListener('click', function () { startTimer(); });
 
   var timerPauseBtn = document.getElementById('docboot-timer-btn-pause');
-  if (timerPauseBtn) timerPauseBtn.addEventListener('click', pauseTimer);
+  if (timerPauseBtn) timerPauseBtn.addEventListener('click', function () { pauseTimer(); });
 
   var timerResetBtn = document.getElementById('docboot-timer-btn-reset');
-  if (timerResetBtn) timerResetBtn.addEventListener('click', resetTimer);
+  if (timerResetBtn) timerResetBtn.addEventListener('click', function () { resetTimer(); });
 
   var notesIncBtn = document.getElementById('docboot-notes-btn-inc');
   if (notesIncBtn) {
@@ -699,7 +920,7 @@
     });
   }
 
-  // --- 10. Live Reload (SSE) ---
+  // --- 13. Live Reload (SSE) ---
   if (window.EventSource) {
     var eventSource = new EventSource('/__docboot_reload');
     eventSource.onmessage = function (e) {
@@ -709,7 +930,7 @@
     };
   }
 
-  // --- 11. Initialize ---
+  // --- 14. Initialize ---
   var urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('presenter') === '1' || urlParams.get('presenter') === 'true') {
     togglePresenter();

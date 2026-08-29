@@ -45,7 +45,7 @@ export function parseMarkdown(rawMarkdown, options = {}) {
   const { frontmatter, content } = extractFrontmatter(rawMarkdown);
   const currentRelativePath = options.relativePath || '';
   const base = options.base || options.config?.base || '/';
-  const processedContent = processDirectives(content, options.config || {});
+  const processedContent = processDirectives(content, { ...(options.config || {}), ...options });
 
   const tocCollector = new TocCollector();
   const headings = [];

@@ -317,3 +317,50 @@ Footer text.
   assert.ok(parsed.html.includes('This content must remain visible in documentation'));
   assert.ok(!parsed.html.includes('This note must be omitted from docs output'));
 });
+
+test('Presentation: code line highlighting parses line ranges and adds highlighted-line class', () => {
+  const md = `
+\`\`\`javascript {2,4-5}
+const a = 1;
+const b = 2;
+const c = 3;
+const d = 4;
+const e = 5;
+\`\`\`
+`.trim();
+
+  const parsed = parseMarkdown(md);
+  assert.ok(parsed.html.includes('has-highlighted-lines'));
+  assert.ok(parsed.html.includes('highlighted-line'));
+});
+
+test('Presentation: :::fragment directive renders reveal fragments in slides', () => {
+  const slideMd = `
+# Interactive Slide
+
+- Item 1
+:::fragment
+- Item 2 revealed on click
+:::
+:::fragment animation="scale"
+- Item 3 with scale animation
+:::
+`.trim();
+
+  const deck = compilePresentation(slideMd);
+  assert.strictEqual(deck.slideCount, 1);
+  assert.ok(deck.slides[0].html.includes('docboot-fragment'));
+  assert.ok(deck.slides[0].html.includes('docboot-fragment-fade-up'));
+  assert.ok(deck.slides[0].html.includes('docboot-fragment-scale'));
+});
+
+test('Presentation: renderPresentation includes laser pointer, drawing canvas, and popout button', () => {
+  const deck = compilePresentation('# Talk');
+  const html = renderPresentation(deck);
+  assert.ok(html.includes('docboot-laser-pointer'));
+  assert.ok(html.includes('docboot-drawing-canvas'));
+  assert.ok(html.includes('docboot-drawing-toolbar'));
+  assert.ok(html.includes('docboot-btn-laser'));
+  assert.ok(html.includes('docboot-btn-draw'));
+  assert.ok(html.includes('docboot-presenter-btn-popout'));
+});

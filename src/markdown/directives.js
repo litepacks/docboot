@@ -136,6 +136,14 @@ function transformDirectiveBlock(name, rawArgs, body, config) {
     return '';
   }
 
+  // 13. Incremental Reveal Fragment Directive (:::fragment ... :::)
+  if (type === 'fragment') {
+    const isSlide = Boolean(config && config.isSlide);
+    const animation = args.animation || args.anim || 'fade-up';
+    const fragmentClass = isSlide ? `docboot-fragment docboot-fragment-${animation}` : 'docboot-fragment-docs';
+    return `<div class="${fragmentClass}">\n\n${body}\n\n</div>`;
+  }
+
   // Unknown directive - leave unchanged
   return `:::${name}${rawArgs ? ' ' + rawArgs : ''}\n${body}\n:::`;
 }

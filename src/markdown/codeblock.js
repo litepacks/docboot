@@ -1,22 +1,38 @@
 import { highlight, escapeHtml } from './highlighter.js';
 
 /**
- * Parses code block info string (e.g. `js title="index.js"`)
+ * Parses code block info string (e.g. `js title="index.js" {2,4-6}`)
  * @param {string} info 
- * @returns {{ lang: string, filename: string }}
+ * @returns {{ lang: string, filename: string, highlightLines: number[] }}
  */
 export function parseCodeInfo(info = '') {
   const parts = info.trim().split(/\s+/);
   const lang = (parts[0] || 'text').toLowerCase();
   let filename = '';
+  const highlightLines = new Set();
 
-  for (const part of parts.slice(1)) {
+  for (const part of parts) {
     if (part.startsWith('title=') || part.startsWith('filename=')) {
       filename = part.split('=')[1].replace(/^["']|["']$/g, '');
+    } else if (/^\{([0-9,\-]+)\}$/.test(part)) {
+      const ranges = part.slice(1, -1).split(',');
+      for (const r of ranges) {
+        if (r.includes('-')) {
+          const [start, end] = r.split('-').map(n => parseInt(n, 10));
+          if (!isNaN(start) && !isNaN(end)) {
+            for (let line = start; line <= end; line++) {
+              highlightLines.add(line);
+            }
+          }
+        } else {
+          const num = parseInt(r, 10);
+          if (!isNaN(num)) highlightLines.add(num);
+        }
+      }
     }
   }
 
-  return { lang, filename };
+  return { lang, filename, highlightLines: Array.from(highlightLines) };
 }
 
 /**
@@ -28,7 +44,6 @@ export function parseCodeInfo(info = '') {
 export function sanitizeMermaidCode(code = '') {
   if (!code) return '';
   return code.split('\n').map(line => {
-    // Auto-quote square brackets: Node[text] -> Node["text"]
     let out = line.replace(/(\b[a-zA-Z0-9_-]+)\[([^"'\r\n\]]+)\]/g, (match, node, label) => {
       const trimmed = label.trim();
       if (!trimmed.startsWith('"') && !trimmed.startsWith("'")) {
@@ -37,7 +52,6 @@ export function sanitizeMermaidCode(code = '') {
       return match;
     });
 
-    // Auto-quote parentheses: Node(text) -> Node("text")
     out = out.replace(/(\b[a-zA-Z0-9_-]+)\(([^"'\r\n\)]+)\)/g, (match, node, label) => {
       const trimmed = label.trim();
       if (!trimmed.startsWith('"') && !trimmed.startsWith("'") && (trimmed.includes('/') || trimmed.includes(':'))) {
@@ -57,7 +71,7 @@ export function sanitizeMermaidCode(code = '') {
  * @returns {string} HTML markup
  */
 export function renderCodeBlock(code, info = '') {
-  const { lang, filename } = parseCodeInfo(info);
+  const { lang, filename, highlightLines } = parseCodeInfo(info);
 
   if (lang === 'mermaid') {
     const sanitized = sanitizeMermaidCode(code);
@@ -107,8 +121,24 @@ export function renderCodeBlock(code, info = '') {
   const copyIconSvg = `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
   const checkIconSvg = `<svg class="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 
+  let finalCodeHtml = highlighted;
+  const hasLineHighlight = highlightLines && highlightLines.length > 0;
+  const highlightSet = new Set(highlightLines || []);
+
+  if (hasLineHighlight) {
+    const rawLines = highlighted.split(/\r?\n/);
+    finalCodeHtml = rawLines.map((line, idx) => {
+      const lineNum = idx + 1;
+      const isHighlighted = highlightSet.has(lineNum);
+      const highlightClass = isHighlighted ? ' highlighted-line' : '';
+      return `<span class="line${highlightClass}">${line || ' '}</span>`;
+    }).join('\n');
+  }
+
+  const extraContainerClass = hasLineHighlight ? ' has-highlighted-lines' : '';
+
   return `
-<div class="docboot-codeblock euix-codeblock group my-6 rounded-xl border border-border/80 bg-[#0d1117] text-[#e6edf3] shadow-lg shadow-black/10 overflow-hidden text-sm">
+<div class="docboot-codeblock euix-codeblock group my-6 rounded-xl border border-border/80 bg-[#0d1117] text-[#e6edf3] shadow-lg shadow-black/10 overflow-hidden text-sm${extraContainerClass}">
   <div class="flex items-center justify-between px-4 py-2.5 border-b border-[#21262d] bg-[#161b22] text-xs font-mono select-none">
     <div class="flex items-center gap-2">
       <div class="flex items-center gap-1.5 mr-2">
@@ -128,7 +158,7 @@ export function renderCodeBlock(code, info = '') {
     </div>
   </div>
   <div class="relative overflow-x-auto p-4 font-mono text-[13px] leading-relaxed">
-    <pre class="m-0 p-0 bg-transparent text-[#e6edf3]"><code>${highlighted}</code></pre>
+    <pre class="m-0 p-0 bg-transparent text-[#e6edf3]"><code>${finalCodeHtml}</code></pre>
   </div>
 </div>
 `;

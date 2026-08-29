@@ -109,6 +109,19 @@ export function renderPresentation(deck, options = {}) {
       ${deck.progress ? '<div id="docboot-presentation-progress" class="docboot-progress-bar" style="width: 0%;"></div>' : ''}
     </div>
 
+    <!-- Laser Pointer & Drawing Pen Overlays -->
+    <div id="docboot-laser-pointer"></div>
+    <canvas id="docboot-drawing-canvas"></canvas>
+    <div id="docboot-drawing-toolbar" class="docboot-drawing-toolbar">
+      <span style="font-size:0.75rem;font-weight:700;color:#8b949e;text-transform:uppercase;margin-right:0.25rem;">Ink</span>
+      <button class="docboot-color-picker-btn selected" style="background:#ef4444;" data-color="#ef4444" title="Red"></button>
+      <button class="docboot-color-picker-btn" style="background:#3b82f6;" data-color="#3b82f6" title="Blue"></button>
+      <button class="docboot-color-picker-btn" style="background:#10b981;" data-color="#10b981" title="Green"></button>
+      <button class="docboot-color-picker-btn" style="background:#eab308;" data-color="#eab308" title="Yellow"></button>
+      <button id="docboot-draw-btn-clear" class="docboot-control-btn" style="width:auto;height:1.6rem;padding:0 0.5rem;font-size:0.75rem;background:#21262d;color:#f0f6fc;margin-left:0.35rem;" title="Clear ink (C)">Clear</button>
+      <button id="docboot-draw-btn-close" class="docboot-control-btn" style="width:1.6rem;height:1.6rem;font-size:0.75rem;background:#21262d;color:#f0f6fc;" title="Close Draw (D)">✕</button>
+    </div>
+
     <!-- Floating Navigation Controls Dock -->
     <nav class="docboot-presentation-controls" aria-label="Presentation Navigation">
       <button id="docboot-btn-prev" class="docboot-control-btn" data-tooltip="Previous [←]" aria-label="Previous slide">
@@ -117,6 +130,12 @@ export function renderPresentation(deck, options = {}) {
       ${deck.slideNumber ? '<span id="docboot-presentation-counter" class="docboot-slide-counter" aria-live="polite">1 / ' + deck.slideCount + '</span>' : ''}
       <button id="docboot-btn-next" class="docboot-control-btn" data-tooltip="Next [→ / Space]" aria-label="Next slide">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </button>
+      <button id="docboot-btn-laser" class="docboot-control-btn" data-tooltip="Laser Pointer [L]" aria-label="Laser Pointer">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="3" fill="currentColor"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v3m0 14v3m10-10h-3M5 12H2m15.07-7.07l-2.12 2.12M9.05 14.95l-2.12 2.12m0-10.14l2.12 2.12m5.9 5.9l2.12 2.12"/></svg>
+      </button>
+      <button id="docboot-btn-draw" class="docboot-control-btn" data-tooltip="Draw / Pen [D]" aria-label="Draw Pen">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
       </button>
       <button id="docboot-btn-overview" class="docboot-control-btn" data-tooltip="Overview [O]" aria-label="Slide Overview">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
@@ -157,9 +176,11 @@ export function renderPresentation(deck, options = {}) {
         <h3 style="margin:0;font-size:1.15rem;font-weight:700;color:#f0f6fc;">Keyboard Shortcuts</h3>
         <button id="docboot-help-btn-close" class="docboot-control-btn" style="background:#21262d;color:#f0f6fc;" title="Close (Esc)">✕</button>
       </div>
-      <div class="docboot-help-row"><span>Next slide</span><div><kbd class="docboot-key-badge">→</kbd> <kbd class="docboot-key-badge">Space</kbd> <kbd class="docboot-key-badge">N</kbd></div></div>
-      <div class="docboot-help-row"><span>Previous slide</span><div><kbd class="docboot-key-badge">←</kbd> <kbd class="docboot-key-badge">P</kbd> <kbd class="docboot-key-badge">H</kbd></div></div>
-      <div class="docboot-help-row"><span>First / Last slide</span><div><kbd class="docboot-key-badge">Home</kbd> <kbd class="docboot-key-badge">End</kbd></div></div>
+      <div class="docboot-help-row"><span>Next slide / Reveal Fragment</span><div><kbd class="docboot-key-badge">→</kbd> <kbd class="docboot-key-badge">Space</kbd> <kbd class="docboot-key-badge">N</kbd></div></div>
+      <div class="docboot-help-row"><span>Previous slide / Hide Fragment</span><div><kbd class="docboot-key-badge">←</kbd> <kbd class="docboot-key-badge">P</kbd> <kbd class="docboot-key-badge">H</kbd></div></div>
+      <div class="docboot-help-row"><span>Vertical Sub-slides / Scroll</span><div><kbd class="docboot-key-badge">↓</kbd> <kbd class="docboot-key-badge">↑</kbd> <kbd class="docboot-key-badge">J</kbd> <kbd class="docboot-key-badge">K</kbd></div></div>
+      <div class="docboot-help-row"><span>Laser Pointer</span><div><kbd class="docboot-key-badge">L</kbd></div></div>
+      <div class="docboot-help-row"><span>Draw Pen / Clear Drawing</span><div><kbd class="docboot-key-badge">D</kbd> <kbd class="docboot-key-badge">C</kbd></div></div>
       <div class="docboot-help-row"><span>Slide Overview Grid</span><div><kbd class="docboot-key-badge">O</kbd> <kbd class="docboot-key-badge">G</kbd></div></div>
       <div class="docboot-help-row"><span>Presenter View</span><div><kbd class="docboot-key-badge">P</kbd></div></div>
       <div class="docboot-help-row"><span>Toggle Fullscreen</span><div><kbd class="docboot-key-badge">F</kbd></div></div>
@@ -181,7 +202,8 @@ export function renderPresentation(deck, options = {}) {
         <button id="docboot-timer-btn-pause" class="docboot-control-btn" style="background:#d29922;color:#000;width:auto;padding:0 0.75rem;font-size:0.75rem;font-weight:600;">Pause</button>
         <button id="docboot-timer-btn-reset" class="docboot-control-btn" style="background:#da3633;color:#fff;width:auto;padding:0 0.75rem;font-size:0.75rem;font-weight:600;">Reset</button>
       </div>
-      <div style="display:flex;align-items:center;gap:1rem;">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <button id="docboot-presenter-btn-popout" class="docboot-control-btn" style="background:#21262d;color:#58a6ff;width:auto;padding:0 0.75rem;font-size:0.75rem;font-weight:600;" title="Open in popout window">Popout ↗</button>
         <span id="docboot-presenter-counter-display" style="font-family:monospace;font-weight:700;color:#38bdf8;">1 / ${deck.slideCount}</span>
         <button id="docboot-presenter-btn-close" class="docboot-control-btn" style="background:#21262d;color:#f0f6fc;" title="Exit Presenter Mode (Esc)">✕</button>
       </div>

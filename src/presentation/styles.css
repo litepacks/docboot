@@ -333,10 +333,122 @@ html, body {
   margin: 1.25rem 0;
 }
 
-.docboot-slide .mermaid svg {
-  max-height: 58vh !important;
-  width: auto !important;
-  max-width: 100% !important;
+/* Incremental Reveal Fragments (:::fragment ... :::) */
+.docboot-fragment {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.docboot-fragment.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.docboot-fragment.docboot-fragment-fade-left {
+  transform: translateX(-16px);
+}
+.docboot-fragment.docboot-fragment-fade-left.visible {
+  transform: translateX(0);
+}
+
+.docboot-fragment.docboot-fragment-scale {
+  transform: scale(0.85);
+}
+.docboot-fragment.docboot-fragment-scale.visible {
+  transform: scale(1);
+}
+
+/* Code Line Highlighting ({2,4-6}) */
+.has-highlighted-lines .line {
+  display: block;
+  opacity: 0.38;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  padding: 0.1rem 1rem;
+  margin: 0 -1rem;
+  border-left: 3px solid transparent;
+}
+
+.has-highlighted-lines .line.highlighted-line {
+  opacity: 1;
+  background-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-left: 3px solid var(--accent);
+}
+
+/* Laser Pointer (L key) */
+#docboot-laser-pointer {
+  position: fixed;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background-color: #ef4444;
+  box-shadow: 0 0 16px 4px #ef4444, 0 0 4px #ffffff;
+  pointer-events: none;
+  z-index: 999999;
+  transform: translate(-50%, -50%);
+  display: none;
+  transition: width 0.1s ease, height 0.1s ease;
+}
+
+#docboot-laser-pointer.active {
+  display: block;
+}
+
+#docboot-laser-pointer.click {
+  transform: translate(-50%, -50%) scale(1.8);
+}
+
+/* Drawing Canvas & Palette (D key) */
+#docboot-drawing-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99995;
+  pointer-events: none;
+  cursor: crosshair;
+}
+
+#docboot-drawing-canvas.drawing-active {
+  pointer-events: auto;
+}
+
+.docboot-drawing-toolbar {
+  position: fixed;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99998;
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background-color: color-mix(in srgb, var(--background) 85%, transparent);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.docboot-drawing-toolbar.active {
+  display: flex;
+}
+
+.docboot-color-picker-btn {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.docboot-color-picker-btn.selected {
+  border-color: #ffffff;
+  transform: scale(1.25);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
 }
 
 /* ==========================================================================

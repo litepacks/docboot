@@ -1,6 +1,6 @@
 ---
 title: Presentation Mode
-description: Write Markdown once, present it as responsive slides with speaker notes, live reload, and static deployment.
+description: Write Markdown once, present it as responsive slides with speaker notes, live reload, incremental fragments, laser pointer, and static deployment.
 order: 6
 ---
 
@@ -95,6 +95,47 @@ Create two-column slides using `::left` and `::right`:
 
 ---
 
+## Interactive Features
+
+### 1. Incremental Reveal Fragments (`:::fragment`)
+Reveal bullet points, paragraphs, or diagrams step-by-step on consecutive `Space` or `→` keypresses:
+
+```markdown
+## Why Docboot?
+
+- Instant start
+:::fragment
+- Zero configuration
+:::
+:::fragment animation="scale"
+- Built-in presentation mode
+:::
+```
+
+### 2. Code Line Highlighting (`{2,4-6}`)
+Highlight important lines in code blocks while subtly dimming the rest:
+
+````markdown
+```javascript {3-5}
+import { SiteBuilder } from 'docboot';
+
+// Highlighted focus area:
+const builder = new SiteBuilder(config);
+await builder.build();
+```
+````
+
+### 3. Laser Pointer (`L` key)
+Press **`L`** to turn your cursor into a glowing red laser pointer with smooth trailing and click pulses.
+
+### 4. Draw & Sketch Pen (`D` key)
+Press **`D`** to open the drawing canvas over your slides. Choose between Red, Blue, Green, and Yellow ink to annotate or circle important points live. Press **`C`** to clear ink.
+
+### 5. Slide Overview Grid (`O` or `G` key)
+Press **`O`** to open a visual grid of all slides in the deck with live previews. Click any card to jump directly to that slide.
+
+---
+
 ## Speaker Notes (`:::notes`)
 
 Speaker notes are extracted and only visible in **Presenter Mode** (`P` key):
@@ -112,27 +153,31 @@ Here is the visible slide content.
 
 ---
 
+## Multi-Window Presenter Sync (`BroadcastChannel`)
+
+Press **`P`** to open the Studio Presenter Console, or click **`Popout ↗`** in the top bar:
+- Projector / Audience window shows clean full-screen slides.
+- Laptop window shows the Presenter Console (notes, timer, previous/next slide previews, and notes font scaler).
+- Both windows synchronize instantly with **0ms latency** via the HTML5 `BroadcastChannel` API.
+
+---
+
 ## Keyboard Shortcuts
 
 | Key | Action |
 | :--- | :--- |
-| **`Right Arrow`** / **`Space`** / **`PageDown`** / **`N`** | Next slide |
-| **`Left Arrow`** / **`PageUp`** / **`H`** / **`P`** | Previous slide |
+| **`Right Arrow`** / **`Space`** / **`PageDown`** / **`N`** | Next slide / Reveal fragment |
+| **`Left Arrow`** / **`PageUp`** / **`H`** | Previous slide / Hide fragment |
+| **`Down Arrow`** / **`Up Arrow`** / **`J`** / **`K`** | Vertical sub-slide / Scroll |
+| **`L`** | Toggle Laser Pointer |
+| **`D`** / **`C`** | Toggle Drawing Pen / Clear Canvas |
+| **`O`** / **`G`** | Slide Overview Grid |
 | **`Home`** / **`End`** | Jump to first / last slide |
 | **`F`** | Toggle Fullscreen |
-| **`P`** | Toggle Presenter View (notes, timer & preview) |
+| **`P`** | Toggle Presenter Console |
 | **`T`** | Toggle Dark / Light Theme |
-| **`Esc`** | Close Presenter View or Fullscreen |
-
----
-
-## Presenter View (`P` or `?presenter=1`)
-
-Pressing **`P`** opens a dual-pane presenter interface:
-- **Current Slide**: Displays what the audience sees.
-- **Next Slide**: Upcoming slide preview.
-- **Speaker Notes**: Large legible notes pane for speech delivery.
-- **Stopwatch Timer**: Local presentation timer with `Start`, `Pause`, and `Reset` controls.
+| **`?`** | Keyboard Shortcuts Cheat-Sheet |
+| **`Esc`** | Close Modals / Presenter / Fullscreen |
 
 ---
 
