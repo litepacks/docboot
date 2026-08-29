@@ -13,7 +13,8 @@
 (function() {
   'use strict';
 
-  var BASE_PATH = (window.__DOCBOOT_BASE__ || '/').replace(/\/$/, '') + '/';
+  var RAW_BASE = window.__DOCBOOT_BASE__ || window.__EUIX_BASE__ || '/';
+  var BASE_PATH = RAW_BASE === '/' ? '/' : RAW_BASE.replace(/\/$/, '') + '/';
 
   function resolveBase(path) {
     if (!path) return '';
@@ -27,6 +28,21 @@
     ) {
       return path;
     }
+    if (BASE_PATH === '/') return path.startsWith('/') ? path : '/' + path;
+
+    // Check if path already starts with BASE_PATH (e.g. /docboot/)
+    if (path.indexOf(BASE_PATH) === 0) {
+      return path;
+    }
+    // Check if path equals or starts with base without trailing slash (e.g. /docboot)
+    var baseWithoutSlash = BASE_PATH.slice(0, -1);
+    if (path === baseWithoutSlash) {
+      return BASE_PATH;
+    }
+    if (path.indexOf(baseWithoutSlash + '/') === 0) {
+      return path;
+    }
+
     if (path === '/' || path === '') return BASE_PATH;
     var clean = path.replace(/^\/+/, '');
     return BASE_PATH + clean;
@@ -986,8 +1002,10 @@
     });
   }
 
-  function navigateTo(url, push = true) {
-    var targetUrl = new URL(url, window.location.origin);
+  function navigateTo(url, push) {
+    if (push === undefined) push = true;
+    var resolvedUrl = resolveBase(url);
+    var targetUrl = new URL(resolvedUrl, window.location.origin);
     if (targetUrl.origin !== window.location.origin) {
       window.location.href = url;
       return;
@@ -995,11 +1013,12 @@
 
     var cleanPath = targetUrl.pathname;
     var hash = targetUrl.hash;
+    var fullTargetUrl = targetUrl.pathname + targetUrl.search + hash;
 
     // In-page hash scroll
     if (cleanPath === window.location.pathname) {
       if (push && hash) {
-        history.pushState(null, '', url);
+        history.pushState(null, '', fullTargetUrl);
       }
       if (hash) {
         var el = document.querySelector(hash);
@@ -1049,7 +1068,11 @@
       // Update sidebar active link highlights
       document.querySelectorAll('aside nav a').forEach(function(a) {
         var aUrl = new URL(a.getAttribute('href'), window.location.origin);
-        if (aUrl.pathname === cleanPath) {
+        if (
+          aUrl.pathname === cleanPath ||
+          aUrl.pathname === cleanPath.replace(/\/$/, '') ||
+          cleanPath === aUrl.pathname.replace(/\/$/, '')
+        ) {
           a.className = 'block px-3 py-1.5 rounded-lg text-[13px] transition-all bg-accent/10 text-accent font-semibold relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-full before:bg-accent';
           a.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         } else {
@@ -1058,7 +1081,7 @@
       });
 
       if (push) {
-        history.pushState(null, '', url);
+        history.pushState(null, '', fullTargetUrl);
       }
 
       if (hash) {
@@ -1166,6 +1189,13 @@
         e.metaKey || e.ctrlKey || e.shiftKey || e.altKey
       ) {
         return;
+      }
+
+      // If clicked from search modal, close modal
+      var searchModal = link.closest('#docboot-search-modal, #euix-search-modal');
+      if (searchModal) {
+        searchModal.classList.add('hidden');
+        document.body.style.overflow = '';
       }
 
       e.preventDefault();
