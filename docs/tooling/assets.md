@@ -51,4 +51,4 @@ Any files placed in your project's `public/` directory (e.g. `public/favicon.svg
 
 - [Docboot Doctor](/tooling/doctor) — Validating broken links and missing images
 - [Docboot Stats](/tooling/stats) — Inspecting documentation bundle metrics
-- [CLI Reference](/tooling/cli) — Full list of CLI commands
+- [CLI Reference](/reference/cli) — Full list of CLI commands

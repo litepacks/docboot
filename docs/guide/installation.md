@@ -93,6 +93,6 @@ docboot build
 
 ## Next Steps
 
-- [Configuration](/guide/configuration) — Optional custom configuration
+- [Configuration Reference](/reference/configuration) — Optional custom configuration
 - [Rich Content Primitives](/guide/rich-content) — Callouts, tabs, and details
-- [CLI Reference](/tooling/cli) — Full list of CLI commands and flags
+- [CLI Reference](/reference/cli) — Full list of CLI commands and flags

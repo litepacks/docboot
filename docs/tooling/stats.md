@@ -28,7 +28,7 @@ docboot stats
 
 ### 2. Compiled Asset Sizes
 - **CSS Bundle**: Compiled design tokens and stylesheet size (`dist/assets/docs.css`)
-- **Client JS Runtime**: Progressive enhancement router and UI bundle size (`dist/assets/client.js`)
+- **Client JS Runtime**: Progressive enhancement router and UI bundle size (`dist/assets/docs.js`)
 - **Search Index**: Pre-compiled MiniSearch index size (`dist/assets/search-index.json`)
 
 ### 3. Build & Cache Performance
@@ -37,7 +37,7 @@ docboot stats
 
 ---
 
-## Example Terminal Output
+## Example Output
 
 Running `docboot stats` produces a structured summary:
 

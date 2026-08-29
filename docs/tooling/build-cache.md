@@ -1,6 +1,6 @@
 ---
 title: Incremental Build Cache
-description: How Docboot achieves sub-second builds with content-addressable caching in .docboot/.
+description: Content-addressable incremental caching in .docboot/cache/.
 order: 3
 ---
 
@@ -10,6 +10,11 @@ Docboot implements an incremental build cache stored in `.docboot/cache/` to avo
 
 > **Core Principle**:  
 > Cache makes builds faster, but it is **never required for correctness**.
+
+### Build Modes
+- **Cold Build**: No reusable compiled artifacts. All pages are parsed and rendered from scratch.
+- **Warm Build**: All unchanged compiled artifacts are retrieved directly from `.docboot/cache/`.
+- **Incremental Rebuild**: Modified source files are re-compiled while unaffected page artifacts are reused from cache.
 
 ---
 

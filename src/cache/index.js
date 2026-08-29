@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { hashString, hashObject, hashFile } from './hasher.js';
 
-export const CACHE_VERSION = 27;
-export const COMPILER_VERSION = '0.27.0';
+export const CACHE_VERSION = 28;
+export const COMPILER_VERSION = '0.28.0';
 
 /**
  * Robust, lightweight build cache manager for incremental documentation builds.

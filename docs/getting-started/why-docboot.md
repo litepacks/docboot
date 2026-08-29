@@ -6,11 +6,11 @@ order: 2
 
 # Why Docboot?
 
-Traditional documentation frameworks are structured as independent software applications. They require initializing a dedicated frontend project, configuring a build pipeline, choosing a UI component framework, and maintaining documentation dependencies over time.
+Many framework-oriented documentation tools start by scaffolding or configuring a dedicated docs application. They involve setting up a frontend workspace, configuring a bundler, and maintaining documentation dependencies over time.
 
 Docboot takes a fundamentally different approach:
 
-> **Traditional tools start with a docs project.**  
+> **Framework-oriented tools start with a docs project.**  
 > **Docboot starts with the Markdown you already have.**
 
 ---

@@ -117,7 +117,6 @@ The output in `dist/` is pure static HTML, CSS, and lightweight client assets re
 
 - **Guide**:
   - [Installation & Setup](/guide/installation) — npm, pnpm, yarn, and global usage
-  - [Configuration](/guide/configuration) — Optional configuration options
   - [Rich Content Primitives](/guide/rich-content) — Tabs, code groups, callouts, and details
   - [Local Search Architecture](/guide/search) — Client-side MiniSearch indexing
   - [Themes & Customization](/guide/themes) — Color presets, typography, and controls
@@ -126,13 +125,17 @@ The output in `dist/` is pure static HTML, CSS, and lightweight client assets re
   - [Analytics Integration](/guide/analytics) — Privacy-first analytics setup
 
 - **Tooling**:
-  - [CLI Reference](/tooling/cli) — Commands, flags, and shorthand combinations
   - [Docboot Doctor](/tooling/doctor) — Diagnostics for links, images, and routes
   - [Docboot Stats](/tooling/stats) — Documentation metrics and bundle analysis
   - [Incremental Build Cache](/tooling/build-cache) — Cache mechanics and invalidation
-  - [GitHub Pages Deployment](/tooling/github-pages) — Automated CI/CD deployment
+  - [GitHub Pages Setup](/tooling/github-pages) — Automated workflow setup
   - [Production Assets](/tooling/assets) — Favicons, OG social cards, and manifests
 
 - **Advanced**:
   - [Architecture & Runtime](/advanced/architecture) — Build pipeline vs client runtime
   - [Performance & Benchmarks](/advanced/performance) — Measured compilation speeds and methodology
+
+- **Reference**:
+  - [CLI Reference](/reference/cli) — Commands, flags, and shorthand combinations
+  - [Configuration Reference](/reference/configuration) — All docboot.config.js options
+  - [Directives Reference](/reference/directives) — Syntax reference for Markdown extensions

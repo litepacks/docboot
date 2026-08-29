@@ -16,7 +16,9 @@ docboot doctor
 
 ## What Doctor Checks
 
-`docboot doctor` inspects your entire documentation tree and reports errors and warnings across 8 categories:
+Docboot Doctor validates common documentation issues across content, routes, assets, metadata, rich content, and deployment configuration:
+
+### Core Checks
 
 | Check | Severity | Description |
 | :--- | :--- | :--- |
@@ -28,7 +30,12 @@ docboot doctor
 | **Missing SEO Descriptions** | `Warning` | Highlights pages missing a `description` meta tag |
 | **Missing Image Alt Text** | `Warning` | Accessibility check for images without descriptive `alt` text |
 | **Duplicate Heading IDs** | `Warning` | Identifies duplicate anchor slugs within the same document |
-| **GitHub Pages Workflow** | `Diagnostic` | When run with `docboot doctor --github`, checks if `.github/workflows/docs.yml` is present and valid |
+
+### Optional Deployment Diagnostics (`--github`)
+
+| Check | Severity | Description |
+| :--- | :--- | :--- |
+| **GitHub Pages Workflow** | `Diagnostic` | Checks if `.github/workflows/docs.yml` is present, targets the correct branch, and has valid base-path configuration (only executed when `--github` is passed) |
 
 ---
 

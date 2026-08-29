@@ -63,18 +63,33 @@ Docboot outputs lightweight client assets that minimize initial page load and ba
 
 ---
 
-## Benchmark Methodology
+## Measured Benchmark Environment
 
-To ensure transparency and reproducibility:
+The performance metrics above were captured under the following reproducible benchmark conditions:
 
-### Environment Conditions
-- **Platform**: Apple Silicon (macOS) & Ubuntu Linux 22.04 LTS (GitHub Actions)
-- **Node.js**: v20.x LTS / v22.x LTS / v24.x
-- **Docboot Version**: `v0.2.0`
-- **Compiler State**:
-  - **Cold Build**: Fresh build with empty `.docboot/` cache (`docboot build --clean`)
-  - **Warm Build**: Unmodified rebuild retrieving all pages from cache (`docboot build`)
-  - **Single-Page Rebuild**: Modifying one Markdown file and measuring elapsed build time
+```text
+Machine:     Apple Silicon (M3 Pro)
+OS:          macOS Sonoma 14.x
+Node.js:     v24.19.0
+Docboot:     v0.2.x
+Fixtures:    Synthesized markdown files with frontmatter, 2 code blocks, 4 headings, and links
+Timing:      High-resolution wall-clock duration via performance.now()
+```
+
+### Definitions
+- **Cold Build**: Fresh compilation with an empty cache directory (`docboot build --clean`).
+- **Warm Build**: Unmodified rebuild where all unchanged compiled artifacts are retrieved from `.docboot/cache/`.
+- **Incremental Rebuild**: A single Markdown file is modified while all unaffected page artifacts are reused from the build cache.
+
+---
+
+## Supported & Tested Environments
+
+Docboot's test suite and compiler are continuously verified across the following platforms:
+
+- **Operating Systems**: macOS (Apple Silicon / Intel), Ubuntu Linux 22.04+ (GitHub Actions CI), Windows 11 (WSL2 / PowerShell)
+- **Node.js Runtimes**: Node.js v20.x LTS, v22.x LTS, v24.x
+- **Package Managers**: `npm`, `pnpm`, `yarn`, `bun`
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: Local Search Architecture
-description: How Docboot delivers zero-latency in-browser documentation search without external services.
+description: In-browser documentation search without external services.
 order: 2
 ---
 
@@ -35,7 +35,7 @@ Docboot provides client-side documentation search powered by **MiniSearch**:
 1. **Build-Time Extraction**: During `docboot build` (or dev mode), pages are parsed into granular section-level records (page title, section heading, text snippet, URL anchor `#`).
 2. **Deterministic Indexing**: The index JSON is compressed and hashed into `dist/assets/search-index.json`.
 3. **On-Demand Lazy Loading**: The MiniSearch JavaScript runtime and search index are **not** loaded until the user opens search for the first time via `Cmd + K`, `Ctrl + K`, or clicking the search trigger.
-4. **Local Query Evaluation**: Once loaded, all typing, fuzzy matching, and prefix searches happen in memory inside the browser with zero network latency.
+4. **Local Query Evaluation**: Once loaded, all typing, fuzzy matching, and prefix searches execute in memory inside the browser without sending queries across the network.
 
 ---
 

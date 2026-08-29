@@ -1,14 +1,20 @@
 ---
-title: GitHub Pages Deployment
-description: Automating GitHub Pages deployment with docboot setup github.
+title: GitHub Pages Setup
+description: Preparing repositories for GitHub Pages publishing with docboot setup github.
 order: 4
 ---
 
-# GitHub Pages Deployment
+# GitHub Pages Setup
 
-Docboot provides automated GitHub Actions workflow generation for publishing documentation directly to GitHub Pages:
+Docboot prepares your repository for GitHub Pages deployment by generating an official GitHub Actions workflow:
 
 > **Docboot configures the workflow. GitHub publishes the site.**
+
+```text
+Docboot         ──► Generates local .github/workflows/docs.yml with inferred base path
+Git             ──► Pushes the workflow to your GitHub repository
+GitHub Actions  ──► Automatically builds and publishes the dist/ static artifact
+```
 
 ---
 
