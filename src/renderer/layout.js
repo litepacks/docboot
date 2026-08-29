@@ -157,8 +157,14 @@ export function renderLayout({
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
 
-        <a href="${withBase('/', base)}" class="flex items-center gap-2 font-bold text-foreground tracking-tight text-sm sm:text-base hover:opacity-90 transition-opacity">
-          <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-extrabold text-xs shadow-md shadow-blue-500/25 flex-shrink-0">▲</div>
+        <a href="${withBase('/', base)}" class="flex items-center gap-2.5 font-bold text-foreground tracking-tight text-sm sm:text-base hover:opacity-90 transition-opacity">
+          <div class="w-7 h-7 rounded-lg bg-accent/15 border border-accent/30 flex items-center justify-center text-accent flex-shrink-0 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+              <path d="M8 7h8"/>
+              <path d="M8 11h5"/>
+            </svg>
+          </div>
           <span class="bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text font-bold">${escapeHtml(siteTitle)}</span>
         </a>
       </div>
