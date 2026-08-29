@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import util from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { scanMarkdownFiles } from '../scanner/index.js';
 import { parseMarkdown } from '../markdown/parser.js';
@@ -85,61 +86,64 @@ export class SiteBuilder {
         searchEntries: null
       });
     } else {
-      const activeRelativePaths = [];
+      const activeRelativePaths = fileEntries.map(e => e.relativePath);
 
-      for (const entry of fileEntries) {
-        activeRelativePaths.push(entry.relativePath);
-        const rawContent = fs.readFileSync(entry.fullPath, 'utf-8');
-        const sourceHash = hashString(rawContent);
+      const parsedPages = await Promise.all(
+        fileEntries.map(async (entry) => {
+          const rawContent = await fs.promises.readFile(entry.fullPath, 'utf-8');
+          const sourceHash = hashString(rawContent);
 
-        let pageArtifact = null;
+          let pageArtifact = null;
 
-        if (!this.noCache && this.cache.isFresh(entry.relativePath, sourceHash, configHash)) {
-          pageArtifact = this.cache.getPageArtifact(entry.relativePath);
-        }
+          if (!this.noCache && this.cache.isFresh(entry.relativePath, sourceHash, configHash)) {
+            pageArtifact = this.cache.getPageArtifact(entry.relativePath);
+          }
 
-        if (!pageArtifact) {
-          this.cache.recordMiss();
-          const { frontmatter, content } = extractFrontmatter(rawContent);
-          const contentHash = hashString(content);
-          const metadataHash = hashObject(frontmatter);
+          if (!pageArtifact) {
+            this.cache.recordMiss();
+            const { frontmatter, content } = extractFrontmatter(rawContent);
+            const contentHash = hashString(content);
+            const metadataHash = hashObject(frontmatter);
 
-          const parsed = parseMarkdown(rawContent, { relativePath: entry.relativePath, config: this.config });
-          const route = filePathToRoute(entry.relativePath);
-          const title = deriveTitle(entry.relativePath, parsed.frontmatter, parsed.headings);
+            const parsed = parseMarkdown(rawContent, { relativePath: entry.relativePath, config: this.config });
+            const route = filePathToRoute(entry.relativePath);
+            const title = deriveTitle(entry.relativePath, parsed.frontmatter, parsed.headings);
 
-          pageArtifact = {
-            relativePath: entry.relativePath,
-            route,
-            title,
-            frontmatter: parsed.frontmatter,
-            toc: parsed.toc,
-            headings: parsed.headings,
-            html: parsed.html,
-            plainText: parsed.plainText,
-            internalLinks: parsed.internalLinks,
-            externalLinks: parsed.externalLinks,
-            referencedAssets: parsed.referencedAssets,
-            codeBlockCount: parsed.codeBlockCount,
-            wordCount: parsed.wordCount,
-            searchEntries: null
+            pageArtifact = {
+              relativePath: entry.relativePath,
+              route,
+              title,
+              frontmatter: parsed.frontmatter,
+              toc: parsed.toc,
+              headings: parsed.headings,
+              html: parsed.html,
+              plainText: parsed.plainText,
+              internalLinks: parsed.internalLinks,
+              externalLinks: parsed.externalLinks,
+              referencedAssets: parsed.referencedAssets,
+              codeBlockCount: parsed.codeBlockCount,
+              wordCount: parsed.wordCount,
+              searchEntries: null
+            };
+
+            this.cache.setPageArtifact(entry.relativePath, pageArtifact, {
+              sourceHash,
+              contentHash,
+              metadataHash,
+              mtimeMs: entry.mtimeMs,
+              size: entry.size
+            });
+          }
+
+          return {
+            ...pageArtifact,
+            fullPath: entry.fullPath,
+            rawContent
           };
+        })
+      );
 
-          this.cache.setPageArtifact(entry.relativePath, pageArtifact, {
-            sourceHash,
-            contentHash,
-            metadataHash,
-            mtimeMs: entry.mtimeMs,
-            size: entry.size
-          });
-        }
-
-        pages.push({
-          ...pageArtifact,
-          fullPath: entry.fullPath,
-          rawContent
-        });
-      }
+      pages.push(...parsedPages);
 
       // Prune deleted files from cache
       this.cache.pruneDeleted(activeRelativePaths);
@@ -339,8 +343,8 @@ export class SiteBuilder {
     });
     htmlContentsForTailwind.push(notFoundHtml);
 
-    // 5. Compile Tailwind CSS with all rendered HTML content and source JS files
-    const compiledCss = await compileCss(htmlContentsForTailwind);
+    // 5. Compile Tailwind CSS with all rendered HTML content and source JS files (fast dev mode bypass)
+    const compiledCss = await compileCss(htmlContentsForTailwind, { minify: !isDev });
 
     // 6. Ensure output directories exist
     const assetsDir = path.join(this.config.outDir, 'assets');
@@ -382,21 +386,21 @@ export class SiteBuilder {
       copyDirectoryRecursive(publicDir, this.config.outDir);
     }
 
-    // 7. Write all pre-rendered HTML files
-    for (const { page, fullHtml } of renderedPages) {
-      let outFilePath;
-
-      if (page.route === '/') {
-        outFilePath = path.join(this.config.outDir, 'index.html');
-      } else {
-        const cleanRoute = page.route.replace(/^\/+/, '');
-        const targetDir = path.join(this.config.outDir, cleanRoute);
-        fs.mkdirSync(targetDir, { recursive: true });
-        outFilePath = path.join(targetDir, 'index.html');
-      }
-
-      fs.writeFileSync(outFilePath, fullHtml, 'utf-8');
-    }
+    // 7. Write all pre-rendered HTML files in parallel
+    await Promise.all(
+      renderedPages.map(async ({ page, fullHtml }) => {
+        let outFilePath;
+        if (page.route === '/') {
+          outFilePath = path.join(this.config.outDir, 'index.html');
+        } else {
+          const cleanRoute = page.route.replace(/^\/+/, '');
+          const targetDir = path.join(this.config.outDir, cleanRoute);
+          await fs.promises.mkdir(targetDir, { recursive: true });
+          outFilePath = path.join(targetDir, 'index.html');
+        }
+        await fs.promises.writeFile(outFilePath, fullHtml, 'utf-8');
+      })
+    );
 
     // Write 404.html to output root
     fs.writeFileSync(path.join(this.config.outDir, '404.html'), notFoundHtml, 'utf-8');
@@ -412,9 +416,9 @@ export class SiteBuilder {
       fs.writeFileSync(path.join(this.config.outDir, 'CNAME'), customDomain.trim(), 'utf-8');
     }
 
-    // 9. Pre-compress static assets (.gz & .br) for production
+    // 9. Pre-compress static assets (.gz & .br) for production in parallel
     if (!isDev) {
-      compressStaticFiles(this.config.outDir);
+      await compressStaticFiles(this.config.outDir);
     }
 
     // Save incremental cache
@@ -432,40 +436,60 @@ export class SiteBuilder {
   }
 }
 
-function compressStaticFiles(dir) {
+const gzipAsync = util.promisify(zlib.gzip);
+const brotliCompressAsync = util.promisify(zlib.brotliCompress);
+
+async function compressStaticFiles(dir) {
   if (!fs.existsSync(dir)) return;
   const compressibleExts = new Set(['.html', '.css', '.js', '.json', '.svg', '.xml', '.txt']);
 
-  function walk(currentDir) {
-    if (!fs.existsSync(currentDir)) return;
+  async function getFiles(currentDir) {
+    if (!fs.existsSync(currentDir)) return [];
     let entries = [];
     try {
-      entries = fs.readdirSync(currentDir, { withFileTypes: true });
+      entries = await fs.promises.readdir(currentDir, { withFileTypes: true });
     } catch (_) {
-      return;
+      return [];
     }
+
+    const files = [];
     for (const entry of entries) {
       const fullPath = path.join(currentDir, entry.name);
       if (entry.isDirectory()) {
-        walk(fullPath);
+        const subFiles = await getFiles(fullPath);
+        files.push(...subFiles);
       } else if (entry.isFile()) {
         const ext = path.extname(entry.name).toLowerCase();
         if (compressibleExts.has(ext) && !entry.name.endsWith('.gz') && !entry.name.endsWith('.br')) {
-          try {
-            const buffer = fs.readFileSync(fullPath);
-            fs.writeFileSync(fullPath + '.gz', zlib.gzipSync(buffer, { level: 6 }));
-            fs.writeFileSync(fullPath + '.br', zlib.brotliCompressSync(buffer, {
-              params: {
-                [zlib.constants.BROTLI_PARAM_QUALITY]: 4
-              }
-            }));
-          } catch (_) {}
+          files.push(fullPath);
         }
       }
     }
+    return files;
   }
 
-  walk(dir);
+  const files = await getFiles(dir);
+
+  await Promise.all(
+    files.map(async (fullPath) => {
+      try {
+        const buffer = await fs.promises.readFile(fullPath);
+        const [gzBuffer, brBuffer] = await Promise.all([
+          gzipAsync(buffer, { level: 6 }),
+          brotliCompressAsync(buffer, {
+            params: {
+              [zlib.constants.BROTLI_PARAM_QUALITY]: 4
+            }
+          })
+        ]);
+
+        await Promise.all([
+          fs.promises.writeFile(fullPath + '.gz', gzBuffer),
+          fs.promises.writeFile(fullPath + '.br', brBuffer)
+        ]);
+      } catch (_) {}
+    })
+  );
 }
 
 function copyDirectoryRecursive(src, dest) {
