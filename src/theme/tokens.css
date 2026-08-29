@@ -531,29 +531,23 @@ html[data-font-family="system"] {
    11. WCAG 2.2 AA Accessibility Styles
    ============================================================ */
 
-/* Visible Focus Ring */
-:focus-visible {
+/* Visible Focus Ring for interactive elements */
+:where(button, a, summary, [role="tab"], [role="button"], [tabindex="0"]):focus-visible,
+:where(input:not(#docboot-search-input):not(.docboot-search-input):not([type="search"]), select, textarea):focus-visible {
   outline: 2px solid var(--focus-ring) !important;
   outline-offset: 2px !important;
 }
 
-button:focus-visible,
-a:focus-visible,
-input:focus-visible:not(#docboot-search-input):not(.docboot-search-input),
-summary:focus-visible,
-[role="tab"]:focus-visible,
-[role="button"]:focus-visible {
-  outline: 2px solid var(--focus-ring) !important;
-  outline-offset: 2px !important;
-}
-
+#docboot-search-input,
 #docboot-search-input:focus,
 #docboot-search-input:focus-visible,
+.docboot-search-input,
 .docboot-search-input:focus,
 .docboot-search-input:focus-visible {
-  outline: none !important;
+  outline: 0 none transparent !important;
+  outline-offset: 0 !important;
   box-shadow: none !important;
-  border: none !important;
+  border-color: transparent !important;
 }
 
 /* Skip Link */
