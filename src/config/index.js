@@ -76,6 +76,17 @@ export const DEFAULT_CONFIG = {
       'player.vimeo.com',
       'codepen.io'
     ]
+  },
+  footer: {
+    pageMeta: true,
+    created: true,
+    updated: true,
+    editLink: true,
+    version: true,
+    commit: false,
+    buildDuration: false,
+    branding: true,
+    links: []
   }
 };
 
@@ -239,6 +250,11 @@ export async function loadConfig(rootDir = process.cwd(), cliOverrides = {}) {
       ...DEFAULT_CONFIG.theme,
       ...(userConfig.theme || {}),
       ...(cliOverrides.theme || {})
+    },
+    footer: {
+      ...DEFAULT_CONFIG.footer,
+      ...(userConfig.footer || {}),
+      ...(cliOverrides.footer || {})
     },
     search: mergedSearch
   };

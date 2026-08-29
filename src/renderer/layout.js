@@ -2,6 +2,7 @@ import { THEME_INIT_SCRIPT } from '../theme/theme-script.js';
 import { escapeHtml } from '../markdown/highlighter.js';
 import { withBase } from '../config/index.js';
 import { renderAnalyticsHead } from './analytics.js';
+import { renderPageMetaFooter, renderGlobalFooter } from './footer.js';
 
 /**
  * Generates full standalone HTML page with modern, polished developer UI.
@@ -14,6 +15,9 @@ import { renderAnalyticsHead } from './analytics.js';
  * @param {object} params.config Site configuration
  * @param {string} params.searchIndexUrl Hashed URL to search index JSON
  * @param {boolean} params.isDev Dev mode flag
+ * @param {string|null} params.license Optional license string from package.json
+ * @param {string|null} params.commit Optional Git commit SHA
+ * @param {number|null} params.buildDuration Optional build duration in ms
  * @returns {string} Complete HTML string
  */
 export function renderLayout({
@@ -24,14 +28,19 @@ export function renderLayout({
   breadcrumbs = [],
   config,
   searchIndexUrl = '/assets/search-index.json',
-  isDev = false
+  isDev = false,
+  license = null,
+  commit = null,
+  buildDuration = null
 }) {
   const base = config.base || '/';
   const siteTitle = config.title || 'Documentation';
   const pageTitle = page.route === '/' ? siteTitle : `${page.title} — ${siteTitle}`;
   const pageDesc = page.frontmatter?.description || config.description || '';
   const canonicalUrl = config.siteUrl ? `${config.siteUrl.replace(/\/$/, '')}${withBase(page.route, base)}` : '';
-  const githubRepo = config.repo || '';  // Frontmatter Source Code Link Badge
+  const githubRepo = config.repo || '';
+
+  // Frontmatter Source Code Link Badge
   let sourceBadgeHtml = '';
   if (page.frontmatter?.source) {
     const rawSource = String(page.frontmatter.source).trim();
@@ -50,48 +59,8 @@ export function renderLayout({
   }
 
   // Page Bottom Metadata & Edit Links
-  let pageMetaFooterHtml = '';
-  const canEdit = config.editLink && page.frontmatter?.editLink !== false && page.relativePath;
-  const canViewSource = config.sourceLink && page.frontmatter?.sourceLink !== false && page.relativePath;
-
-  if (canEdit || canViewSource) {
-    let editUrl = '';
-    if (canEdit && config.editLink.pattern) {
-      editUrl = config.editLink.pattern
-        .replace(':path', page.relativePath.replace(/^\/+/, ''))
-        .replace(':repo', config.repo || '');
-    }
-
-    let sourceUrl = '';
-    if (canViewSource && config.sourceLink.pattern) {
-      sourceUrl = config.sourceLink.pattern
-        .replace(':path', page.relativePath.replace(/^\/+/, ''))
-        .replace(':repo', config.repo || '');
-    }
-
-    pageMetaFooterHtml = `
-<div class="not-prose mt-12 pt-6 border-t border-border/60 flex flex-wrap items-center justify-between gap-4 text-xs text-muted-foreground">
-  <div class="flex items-center gap-4 flex-wrap">
-    ${editUrl ? `
-    <a href="${editUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-muted-foreground hover:text-accent transition-colors font-medium">
-      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-      <span>${escapeHtml(config.editLink.text || 'Edit this page on GitHub')}</span>
-    </a>
-    ` : ''}
-
-    ${sourceUrl ? `
-    <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-muted-foreground hover:text-accent transition-colors font-medium">
-      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-      <span>${escapeHtml(config.sourceLink.text || 'View source')}</span>
-    </a>
-    ` : ''}
-  </div>
-
-  <div class="text-muted-foreground/50 text-[11px] font-mono">
-    ${escapeHtml(page.relativePath || '')}
-  </div>
-</div>`;
-  }
+  const pageMetaFooterHtml = renderPageMetaFooter({ page, config });
+  const globalFooterHtml = renderGlobalFooter({ config, license, commit, buildDuration });
 
   const showThemeToggle = config.theme?.themeToggle !== false && config.theme?.allowModeSwitch !== false;
   const showPresetMenu = config.theme?.presetMenu !== false && config.theme?.allowPresetSwitch !== false && config.theme?.fontMenu !== false;
@@ -355,6 +324,8 @@ export function renderLayout({
     </aside>` : ''}
 
   </div>
+
+  ${globalFooterHtml}
 
   <!-- Mobile Drawer Backdrop -->
   <div id="docboot-mobile-backdrop" class="docboot-mobile-backdrop euix-mobile-backdrop fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden md:hidden"></div>

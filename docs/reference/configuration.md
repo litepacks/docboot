@@ -151,6 +151,44 @@ export default {
 
 ---
 
+## 9. Page Provenance & Footer
+
+Docboot automatically infers Git creation dates, last update dates, and GitHub edit URLs at build time without requiring manual date maintenance.
+
+```javascript title="docboot.config.js"
+export default {
+  footer: {
+    pageMeta: true,     // Enable page-level metadata footer
+    created: true,      // Show page initial introduction date (from Git or frontmatter)
+    updated: true,      // Show page last modified date (from Git or frontmatter)
+    editLink: true,     // Automatic "Edit this page" link
+    version: true,      // Show Docboot version in site footer
+    commit: false,      // Show short commit SHA in site footer
+    buildDuration: false, // Show compilation duration in site footer
+    branding: true,     // Show "Built with Docboot" branding
+    links: [
+      { label: "GitHub", href: "https://github.com/litepacks/docboot" },
+      { label: "npm", href: "https://www.npmjs.com/package/docboot" }
+    ]
+  }
+};
+```
+
+### Frontmatter Overrides
+
+You can override Git-inferred provenance explicitly in any Markdown file's frontmatter:
+
+```markdown
+---
+title: State Management
+created: 2026-08-12
+updated: 2026-08-29
+editLink: false
+---
+```
+
+---
+
 ## Next Steps
 
 - [CLI Reference](/reference/cli) — CLI commands and flags

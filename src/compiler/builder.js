@@ -17,6 +17,8 @@ import { escapeHtml } from '../markdown/highlighter.js';
 import { renderNotFoundPage } from '../renderer/not-found.js';
 import { withBase } from '../config/index.js';
 import { AssetGenerator } from '../assets/generator.js';
+import { GitMetadataResolver } from '../metadata/git.js';
+import { parseGitHubRemote } from '../setup/github/detect.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,6 +29,7 @@ export class SiteBuilder {
     this.logger = logger;
     this.noCache = Boolean(options.noCache || config.noCache);
     this.cache = new CacheManager(config.cacheDir, { disabled: this.noCache });
+    this.gitResolver = new GitMetadataResolver(config.rootDir);
   }
 
   computeConfigHash() {
@@ -243,6 +246,57 @@ export class SiteBuilder {
     const searchJsonPayload = JSON.stringify(searchIndex, null, isDev ? 2 : 0);
     const searchIndexUrl = withBase(`/assets/${searchFilename}`, this.config.base);
 
+    // 3.5 Resolve Git provenance, Edit links, and Package Metadata
+    let pkgLicense = null;
+    try {
+      const pkgPath = path.join(this.config.rootDir, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        const pkgData = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+        pkgLicense = pkgData.license || null;
+      }
+    } catch {}
+
+    const remoteUrl = this.config.repo || this.gitResolver.remote;
+    const parsedGh = remoteUrl ? parseGitHubRemote(remoteUrl) : null;
+    const branch = this.config.branch || this.gitResolver.branch || 'main';
+
+    for (const page of pages) {
+      const repoRelPath = page.fullPath
+        ? path.relative(this.config.rootDir, page.fullPath).replace(/\\/g, '/')
+        : (page.relativePath || '').replace(/\\/g, '/');
+
+      const gitMeta = this.gitResolver.resolveFile(page.fullPath, repoRelPath);
+
+      page.git = {
+        createdAt: page.frontmatter?.created || page.frontmatter?.createdAt || gitMeta.createdAt || null,
+        updatedAt: page.frontmatter?.updated || page.frontmatter?.updatedAt || gitMeta.updatedAt || null,
+        commit: gitMeta.commit || null,
+        fullCommit: gitMeta.fullCommit || null
+      };
+
+      // Resolve edit URL
+      if (page.frontmatter?.editLink === false || page.frontmatter?.editUrl === false) {
+        page.editUrl = null;
+      } else if (this.config.editLink?.pattern) {
+        page.editUrl = this.config.editLink.pattern
+          .replace(':path', (page.relativePath || '').replace(/^\/+/, ''))
+          .replace(':repo', this.config.repo || '');
+      } else if (parsedGh?.owner && parsedGh?.repository) {
+        page.editUrl = `https://github.com/${parsedGh.owner}/${parsedGh.repository}/edit/${branch}/${repoRelPath.replace(/^\/+/, '')}`;
+      } else {
+        page.editUrl = null;
+      }
+
+      // Resolve source URL
+      if (this.config.sourceLink?.pattern && page.frontmatter?.sourceLink !== false) {
+        page.sourceUrl = this.config.sourceLink.pattern
+          .replace(':path', (page.relativePath || '').replace(/^\/+/, ''))
+          .replace(':repo', this.config.repo || '');
+      } else {
+        page.sourceUrl = null;
+      }
+    }
+
     // 4. Pre-render all HTML pages
     const renderedPages = [];
     const htmlContentsForTailwind = [];
@@ -261,7 +315,9 @@ export class SiteBuilder {
         breadcrumbs,
         config: this.config,
         searchIndexUrl,
-        isDev
+        isDev,
+        license: pkgLicense,
+        commit: this.gitResolver.isGit ? Array.from(this.gitResolver.cache.values())[0]?.commit : null
       });
 
       renderedPages.push({
