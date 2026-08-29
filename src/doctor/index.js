@@ -7,6 +7,7 @@ import { filePathToRoute, deriveTitle } from '../routes/tree.js';
 import { buildSidebar } from '../routes/navigation.js';
 import { CacheManager } from '../cache/index.js';
 import { hashString } from '../cache/hasher.js';
+import { validateAccessibility } from './a11y.js';
 
 export class Doctor {
   constructor(config, logger) {
@@ -261,6 +262,14 @@ export class Doctor {
       for (const err of githubDiagnostics.errors) {
         errors.push({ type: 'GitHub Pages', message: err });
       }
+    }
+
+    // Optional Accessibility (WCAG 2.2 AA) Diagnostics
+    if (options.a11y) {
+      const a11yResult = validateAccessibility(pages, this.config);
+      for (const p of a11yResult.passes) passes.push(p);
+      for (const w of a11yResult.warnings) warnings.push(w);
+      for (const err of a11yResult.errors) errors.push(err);
     }
 
     return {

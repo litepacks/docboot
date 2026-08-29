@@ -61,33 +61,42 @@ export function renderCodeBlock(code, info = '') {
 
   if (lang === 'mermaid') {
     const sanitized = sanitizeMermaidCode(code);
+    const diagramTitle = filename || 'Mermaid Diagram';
+
     return `
-<div class="docboot-mermaid-wrapper my-6 rounded-xl border border-border/80 bg-card-bg/40 shadow-sm overflow-hidden">
+<figure role="figure" aria-label="${escapeHtml(diagramTitle)}" class="docboot-mermaid-wrapper not-prose my-6 rounded-xl border border-border/80 bg-card-bg/40 shadow-sm overflow-hidden">
   <div class="flex items-center justify-between px-4 py-2 border-b border-border/60 bg-muted/20 text-xs font-mono select-none">
-    <span class="text-[11px] font-semibold text-accent uppercase tracking-wider flex items-center gap-1.5">
-      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h6v6H3zM15 3h6v6h-6zM9 15h6v6H9z"/><path d="M6 9v3a3 3 0 003 3h3m3-6v3a3 3 0 01-3 3"/></svg>
-      Mermaid Diagram
-    </span>
+    <figcaption class="text-[11px] font-semibold text-accent uppercase tracking-wider flex items-center gap-1.5">
+      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3h6v6H3zM15 3h6v6h-6zM9 15h6v6H9z"/><path d="M6 9v3a3 3 0 003 3h3m3-6v3a3 3 0 01-3 3"/></svg>
+      <span>${escapeHtml(diagramTitle)}</span>
+    </figcaption>
     <div class="flex items-center gap-1.5">
-      <button type="button" class="docboot-mermaid-expand-btn inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" title="Open zoomable modal" aria-label="Expand diagram">
-        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+      <button type="button" class="docboot-mermaid-expand-btn inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" title="Open zoomable modal" aria-label="Expand diagram modal">
+        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
         <span class="text-[10px]">Expand</span>
       </button>
-      <button type="button" class="euix-copy-btn inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" data-code="${escapeHtml(code)}" aria-label="Copy mermaid code">
-        <span class="copy-icon"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
-        <span class="copied-icon hidden"><svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
+      <button type="button" class="euix-copy-btn inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer" data-code="${escapeHtml(code)}" aria-label="Copy mermaid code to clipboard">
+        <span class="copy-icon"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
+        <span class="copied-icon hidden"><svg class="w-3 h-3 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg></span>
         <span class="copy-text text-[10px]">Copy</span>
       </button>
     </div>
   </div>
   <div class="relative p-6 overflow-x-auto flex flex-col justify-center items-center text-center min-h-[140px]">
-    <div class="docboot-mermaid-loading flex flex-col items-center justify-center gap-2.5 py-6 text-muted-foreground text-xs font-mono animate-pulse">
+    <div class="docboot-mermaid-loading flex flex-col items-center justify-center gap-2.5 py-6 text-muted-foreground text-xs font-mono animate-pulse" aria-hidden="true">
       <svg class="w-5 h-5 animate-spin text-accent" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
       <span class="text-[11px] tracking-wide">Rendering diagram...</span>
     </div>
     <pre class="mermaid bg-transparent m-0 p-0 text-foreground font-sans hidden">${escapeHtml(sanitized)}</pre>
   </div>
-</div>
+  <details class="docboot-mermaid-source border-t border-border/40 px-4 py-2 bg-muted/10 text-xs">
+    <summary class="cursor-pointer text-muted-foreground hover:text-foreground font-medium select-none flex items-center gap-1.5">
+      <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      <span>View diagram source</span>
+    </summary>
+    <pre class="mt-2 p-3 rounded bg-muted/40 font-mono text-[11px] overflow-x-auto text-foreground"><code>${escapeHtml(code)}</code></pre>
+  </details>
+</figure>
 `;
   }
 

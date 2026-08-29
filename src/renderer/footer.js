@@ -109,7 +109,7 @@ export function renderGlobalFooter({ config, license = null, commit = null, buil
   }
 
   return `
-<footer class="border-t border-border/60 py-6 text-xs text-muted-foreground bg-muted/10 mt-auto">
+<footer role="contentinfo" class="border-t border-border/60 py-6 text-xs text-muted-foreground bg-muted/10 mt-auto">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
     <div class="flex items-center gap-2 flex-wrap">
       ${showVersion ? `<span>Docboot v${COMPILER_VERSION}</span>` : ''}

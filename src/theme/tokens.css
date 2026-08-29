@@ -24,6 +24,15 @@
     --code-header: #161b22;
     --card-background: #ffffff;
     --search-overlay: rgba(9, 9, 11, 0.5);
+    --focus-ring: #2563eb;
+    --modal-backdrop: rgba(0, 0, 0, 0.75);
+    --modal-background: #ffffff;
+    --modal-foreground: #09090b;
+    --modal-border: #e4e4e7;
+    --modal-control-bg: #f4f4f5;
+    --modal-control-fg: #09090b;
+    --diagram-canvas-background: #ffffff;
+    --diagram-canvas-foreground: #09090b;
   }
 
   .dark,
@@ -44,6 +53,15 @@
     --code-header: #161b22;
     --card-background: #121215;
     --search-overlay: rgba(0, 0, 0, 0.75);
+    --focus-ring: #38bdf8;
+    --modal-backdrop: rgba(0, 0, 0, 0.85);
+    --modal-background: #121215;
+    --modal-foreground: #f4f4f5;
+    --modal-border: #27272a;
+    --modal-control-bg: #18181b;
+    --modal-control-fg: #f4f4f5;
+    --diagram-canvas-background: #121215;
+    --diagram-canvas-foreground: #f4f4f5;
   }
 
   /* ============================================================
@@ -508,3 +526,99 @@ html[data-font-family="system"] {
   fill: #475569 !important;
   stroke: #475569 !important;
 }
+
+/* ============================================================
+   11. WCAG 2.2 AA Accessibility Styles
+   ============================================================ */
+
+/* Visible Focus Ring */
+:focus-visible {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+summary:focus-visible,
+[role="tab"]:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* Skip Link */
+.docboot-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 1rem;
+  z-index: 100;
+  padding: 0.625rem 1.25rem;
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  text-decoration: none;
+  transition: none;
+}
+
+.docboot-skip-link:focus {
+  left: 1rem;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Prose Link Distinct Underlines */
+article a:not(.not-prose):not([class*="docboot-"]):not([class*="euix-"]) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Forced Colors / High Contrast Modes */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: 2px !important;
+  }
+
+  [aria-current="page"],
+  [aria-selected="true"] {
+    border: 2px solid Highlight !important;
+  }
+
+  .docboot-tab-btn[aria-selected="true"] {
+    border-bottom: 3px solid Highlight !important;
+  }
+
+  .docboot-callout {
+    border-left: 4px solid CanvasText !important;
+  }
+}
+
+/* QA Color-Blindness Filters */
+html.filter-grayscale {
+  filter: grayscale(100%);
+}
+html.filter-protanopia {
+  filter: url('#docboot-protanopia');
+}
+html.filter-deuteranopia {
+  filter: url('#docboot-deuteranopia');
+}
+html.filter-tritanopia {
+  filter: url('#docboot-tritanopia');
+}
+

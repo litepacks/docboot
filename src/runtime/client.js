@@ -48,6 +48,75 @@
     return BASE_PATH + clean;
   }
 
+  // --- Accessibility Announcer & Modal Focus Management ---
+  function announceA11y(message) {
+    var el = document.getElementById('docboot-a11y-live');
+    if (!el || !message) return;
+    el.textContent = '';
+    setTimeout(function() {
+      el.textContent = message;
+    }, 40);
+  }
+
+  var activeModalFocusTrap = null;
+  var lastModalFocusedTrigger = null;
+
+  function trapModalFocus(modalEl, initialFocusEl) {
+    lastModalFocusedTrigger = document.activeElement;
+    document.body.style.overflow = 'hidden';
+
+    var focusableSelectors = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    function handleKeyDown(e) {
+      if (e.key === 'Tab') {
+        var focusable = Array.from(modalEl.querySelectorAll(focusableSelectors)).filter(function(el) {
+          return el.offsetParent !== null;
+        });
+        if (focusable.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    }
+
+    modalEl.addEventListener('keydown', handleKeyDown);
+    activeModalFocusTrap = { modal: modalEl, handler: handleKeyDown };
+
+    setTimeout(function() {
+      if (initialFocusEl && typeof initialFocusEl.focus === 'function') {
+        initialFocusEl.focus();
+      } else {
+        var focusable = modalEl.querySelectorAll(focusableSelectors);
+        if (focusable.length) focusable[0].focus();
+      }
+    }, 50);
+  }
+
+  function releaseModalFocus() {
+    if (activeModalFocusTrap) {
+      activeModalFocusTrap.modal.removeEventListener('keydown', activeModalFocusTrap.handler);
+      activeModalFocusTrap = null;
+    }
+    document.body.style.overflow = '';
+    if (lastModalFocusedTrigger && typeof lastModalFocusedTrigger.focus === 'function') {
+      try { lastModalFocusedTrigger.focus(); } catch (e) {}
+    }
+  }
+
   // --- 1. Theme & Color Palette Management ---
   var themeInitialized = false;
 
@@ -281,6 +350,7 @@
         if (copyIcon) copyIcon.classList.add('hidden');
         if (copiedIcon) copiedIcon.classList.remove('hidden');
         if (text) text.textContent = 'Copied!';
+        announceA11y('Code copied to clipboard');
 
         setTimeout(function() {
           if (copyIcon) copyIcon.classList.remove('hidden');
@@ -431,20 +501,21 @@
 
     function openModal() {
       modal.classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
       input.value = '';
       selectedIndex = -1;
       currentResults = [];
       resultsContainer.innerHTML = '<div class="p-8 text-center text-sm text-muted-foreground">Type to search documentation...</div>';
-      setTimeout(function() { input.focus(); }, 50);
+      trapModalFocus(modal, input);
+      announceA11y('Search dialog opened');
 
       loadSearch().catch(function() {});
     }
 
     function closeModal() {
       modal.classList.add('hidden');
-      document.body.style.overflow = '';
       input.blur();
+      releaseModalFocus();
+      announceA11y('Search dialog closed');
     }
 
     triggers.forEach(function(trigger) {
@@ -517,8 +588,11 @@
 
       if (results.length === 0) {
         resultsContainer.innerHTML = '<div class="p-8 text-center text-sm text-muted-foreground">No matching documents for <span class="font-medium text-foreground">"' + escapeHtml(query) + '"</span></div>';
+        announceA11y('No matching documents found');
         return;
       }
+
+      announceA11y(results.length + ' search result' + (results.length === 1 ? '' : 's') + ' found');
 
       var html = '<div class="p-2 space-y-1">';
       for (var i = 0; i < results.length; i++) {
@@ -528,7 +602,7 @@
           ? 'bg-accent/10 border-accent/40 text-foreground ring-1 ring-accent/30'
           : 'hover:bg-muted/60 text-foreground/90 border-transparent';
 
-        html += '<a href="' + resolveBase(item.route) + '" class="search-result-item flex items-center justify-between p-3 rounded-lg border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
+        html += '<a href="' + resolveBase(item.route) + '" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '" class="search-result-item flex items-center justify-between p-3 rounded-lg border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
         html += '<div class="flex-1 min-w-0 pr-3">';
         html += '<div class="font-medium text-foreground truncate">' + escapeHtml(item.title) + '</div>';
         if (item.section) {
@@ -538,7 +612,7 @@
           html += '<div class="text-xs text-muted-foreground/80 truncate mt-1">' + escapeHtml(item.snippet) + '</div>';
         }
         html += '</div>';
-        html += '<svg class="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+        html += '<svg class="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
         html += '</a>';
       }
       html += '</div>';
@@ -929,7 +1003,9 @@
 
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
+    var closeBtn = modal.querySelector('#docboot-mermaid-modal-close');
+    trapModalFocus(modal, closeBtn);
+    announceA11y('Mermaid diagram viewer opened. Use zoom controls or arrow keys to inspect.');
   }
 
   function closeMermaidModal() {
@@ -938,7 +1014,8 @@
       modal.classList.add('hidden');
       modal.style.display = 'none';
     }
-    document.body.style.overflow = '';
+    releaseModalFocus();
+    announceA11y('Mermaid diagram viewer closed');
   }
 
   // --- 7. Soft SPA-Style Page Navigation & Top Loading Bar ---
@@ -1319,6 +1396,7 @@
       var btn = btnList[i];
       var isTarget = i === index;
       btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+      btn.setAttribute('tabindex', isTarget ? '0' : '-1');
       if (isTarget) {
         selectedLabel = btn.getAttribute('data-tab-label') || btn.textContent.trim();
         btn.className = isCodeGroup
@@ -1529,22 +1607,23 @@
 
     updateLightboxView();
     modal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+    var closeBtn = modal.querySelector('#docboot-lightbox-close');
+    trapModalFocus(modal, closeBtn);
+    announceA11y('Image lightbox opened. Image ' + (currentLightboxIndex + 1) + ' of ' + currentLightboxImages.length);
   }
 
   function closeLightbox() {
     var modal = document.getElementById('docboot-lightbox-modal');
     if (modal) modal.classList.add('hidden');
-    document.body.style.overflow = '';
-    if (activeLightboxTrigger) {
-      activeLightboxTrigger.focus();
-    }
+    releaseModalFocus();
+    announceA11y('Image lightbox closed');
   }
 
   function navigateLightbox(delta) {
     if (!currentLightboxImages.length) return;
     currentLightboxIndex = (currentLightboxIndex + delta + currentLightboxImages.length) % currentLightboxImages.length;
     updateLightboxView();
+    announceA11y('Image ' + (currentLightboxIndex + 1) + ' of ' + currentLightboxImages.length);
   }
 
   function updateLightboxView() {

@@ -61,7 +61,6 @@ export function renderLayout({
   // Page Bottom Metadata & Edit Links
   const pageMetaFooterHtml = renderPageMetaFooter({ page, config });
   const globalFooterHtml = renderGlobalFooter({ config, license, commit, buildDuration });
-
   const showThemeToggle = config.theme?.themeToggle !== false && config.theme?.allowModeSwitch !== false;
   const showPresetMenu = config.theme?.presetMenu !== false && config.theme?.allowPresetSwitch !== false && config.theme?.fontMenu !== false;
   const showFontSizeControl = config.theme?.fontSizeControl !== false && config.theme?.fontSizeSwitcher !== false;
@@ -72,7 +71,7 @@ export function renderLayout({
   const prevNextHtml = renderPrevNextHtml(prevNext, base);
 
   return `<!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="${escapeHtml(config.lang || 'en')}" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -80,10 +79,9 @@ export function renderLayout({
   ${pageDesc ? `<meta name="description" content="${escapeHtml(pageDesc)}">` : ''}
   ${canonicalUrl ? `<link rel="canonical" href="${canonicalUrl}">` : ''}
   
-  <!-- Non-blocking asynchronous font loading -->
+  <!-- Google Fonts Preconnect & Load -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
   <noscript>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
@@ -124,8 +122,14 @@ export function renderLayout({
 </head>
 <body class="bg-background text-foreground min-h-screen flex flex-col antialiased selection:bg-accent/20 selection:text-accent font-sans">
 
+  <!-- Accessible Skip Link -->
+  <a href="#main-content" class="docboot-skip-link skip-link">Skip to main content</a>
+
+  <!-- Screen Reader Live Announcer -->
+  <div id="docboot-a11y-live" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
   <!-- Header -->
-  <header class="sticky top-0 z-30 w-full border-b border-border/80 bg-background/80 backdrop-blur-xl transition-colors">
+  <header role="banner" class="sticky top-0 z-30 w-full border-b border-border/80 bg-background/80 backdrop-blur-xl transition-colors">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
       
       <!-- Left: Mobile Toggle & Brand Logo -->
@@ -272,12 +276,12 @@ export function renderLayout({
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex-1 flex">
     
     <!-- Left Sidebar (Desktop) -->
-    <aside id="docboot-sidebar-desktop" class="docboot-sidebar-desktop hidden md:block w-64 flex-shrink-0 border-r border-border/60 py-8 pr-6 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+    <aside id="docboot-sidebar-desktop" aria-label="Sidebar navigation" class="docboot-sidebar-desktop hidden md:block w-64 flex-shrink-0 border-r border-border/60 py-8 pr-6 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
       ${sidebarHtml}
     </aside>
 
     <!-- Main Content Column -->
-    <main class="flex-1 min-w-0 py-8 md:px-8 lg:px-12 max-w-4xl">
+    <main id="main-content" role="main" tabindex="-1" class="flex-1 min-w-0 py-8 md:px-8 lg:px-12 max-w-4xl focus:outline-none">
       <div class="flex items-center justify-between gap-4 mb-4">
         <div class="min-w-0 flex-1">
           ${breadcrumbsHtml}
@@ -295,7 +299,7 @@ export function renderLayout({
       </div>
       ${sourceBadgeHtml}
 
-      <article class="prose max-w-none">
+      <article role="article" class="prose max-w-none">
         ${page.html}
       </article>
 
@@ -305,7 +309,7 @@ export function renderLayout({
 
     <!-- Right Sidebar (Table of Contents) -->
     ${tocHtml ? `
-    <aside class="hidden lg:block w-64 flex-shrink-0 py-8 pl-6 pr-6 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
+    <aside aria-label="Table of contents" class="hidden lg:block w-64 flex-shrink-0 py-8 pl-6 pr-6 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
       ${showFontSizeControl ? `
       <div class="pb-3 mb-3 border-b border-border/60 flex items-center justify-between text-xs text-muted-foreground select-none">
         <span class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">Text size</span>
@@ -317,10 +321,12 @@ export function renderLayout({
       </div>` : ''}
 
       <div class="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80 mb-3.5 flex items-center gap-1.5">
-        <svg class="w-3.5 h-3.5 text-accent/80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
+        <svg class="w-3.5 h-3.5 text-accent/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg>
         <span>On this page</span>
       </div>
-      ${tocHtml}
+      <nav aria-label="On this page">
+        ${tocHtml}
+      </nav>
     </aside>` : ''}
 
   </div>
@@ -334,7 +340,7 @@ export function renderLayout({
   <div id="docboot-mobile-drawer" class="docboot-mobile-drawer euix-mobile-drawer fixed inset-y-0 left-0 z-50 w-72 bg-sidebar-bg border-r border-border p-6 overflow-y-auto transform -translate-x-full transition-transform duration-200 ease-in-out md:hidden shadow-2xl">
     <div class="flex items-center justify-between pb-4 mb-4 border-b border-border">
       <div class="flex items-center gap-2.5 font-bold text-foreground">
-        <div class="w-6 h-6 rounded-lg bg-accent text-accent-foreground flex items-center justify-center font-bold text-xs">▲</div>
+        <div class="w-6 h-6 rounded-lg bg-accent text-accent-foreground flex items-center justify-center font-bold text-xs" aria-hidden="true">▲</div>
         <span>${escapeHtml(siteTitle)}</span>
       </div>
       <button id="docboot-mobile-close" type="button" class="docboot-mobile-close euix-mobile-close p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Close navigation">
@@ -345,15 +351,15 @@ export function renderLayout({
   </div>
 
   <!-- Command Palette Search Modal (Cmd+K) -->
-  <div id="docboot-search-modal" class="docboot-search-modal euix-search-modal fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 md:p-20 hidden">
+  <div id="docboot-search-modal" role="dialog" aria-modal="true" aria-label="Search documentation" class="docboot-search-modal euix-search-modal fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 md:p-20 hidden">
     <div id="docboot-search-backdrop" class="docboot-search-backdrop euix-search-backdrop fixed inset-0 bg-black/70 backdrop-blur-md transition-opacity"></div>
     <div class="relative mx-auto max-w-2xl rounded-2xl border border-border bg-card-bg shadow-2xl overflow-hidden text-foreground">
       <div class="flex items-center border-b border-border px-4 py-3.5 bg-muted/20">
-        <svg class="w-5 h-5 text-muted-foreground mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        <input id="docboot-search-input" type="text" placeholder="Search documentation..." class="docboot-search-input euix-search-input w-full bg-transparent text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" autocomplete="off" />
-        <kbd class="px-2 py-0.5 rounded-md border border-border text-[10px] text-muted-foreground font-mono bg-muted/60">ESC</kbd>
+        <svg class="w-5 h-5 text-muted-foreground mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="docboot-search-input" type="text" placeholder="Search documentation..." aria-label="Search documentation" aria-autocomplete="list" aria-controls="docboot-search-results" class="docboot-search-input euix-search-input w-full bg-transparent text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" autocomplete="off" />
+        <kbd class="px-2 py-0.5 rounded-md border border-border text-[10px] text-muted-foreground font-mono bg-muted/60" aria-label="Escape key to close">ESC</kbd>
       </div>
-      <div id="docboot-search-results" class="docboot-search-results euix-search-results max-h-96 overflow-y-auto divide-y divide-border/40 p-2">
+      <div id="docboot-search-results" role="listbox" aria-label="Search results" class="docboot-search-results euix-search-results max-h-96 overflow-y-auto divide-y divide-border/40 p-2">
         <div class="p-8 text-center text-sm text-muted-foreground">Type to search documentation...</div>
       </div>
       <div class="px-4 py-2.5 border-t border-border bg-muted/30 flex items-center justify-between text-[11px] text-muted-foreground">
@@ -366,6 +372,15 @@ export function renderLayout({
     </div>
   </div>
 
+  <!-- SVG Filters for QA Color Blindness Simulation -->
+  <svg class="sr-only" aria-hidden="true" style="position: absolute; width: 0; height: 0;">
+    <defs>
+      <filter id="docboot-protanopia"><feColorMatrix type="matrix" values="0.567, 0.433, 0, 0, 0 0.558, 0.442, 0, 0, 0 0, 0.242, 0.758, 0, 0 0, 0, 0, 1, 0"/></filter>
+      <filter id="docboot-deuteranopia"><feColorMatrix type="matrix" values="0.625, 0.375, 0, 0, 0 0.7, 0.3, 0, 0, 0 0, 0.3, 0.7, 0, 0 0, 0, 0, 1, 0"/></filter>
+      <filter id="docboot-tritanopia"><feColorMatrix type="matrix" values="0.95, 0.05, 0, 0, 0 0, 0.433, 0.567, 0, 0 0, 0.475, 0.525, 0, 0 0, 0, 0, 1, 0"/></filter>
+    </defs>
+  </svg>
+
   <!-- Scripts -->
   <script src="${withBase('/assets/docs.js', base)}"></script>
 </body>
@@ -373,14 +388,14 @@ export function renderLayout({
 }
 
 function renderSidebarHtml(sidebar, currentRoute, base = '/') {
-  let html = '<nav class="space-y-6 text-sm">';
+  let html = '<nav aria-label="Main documentation navigation" class="space-y-6 text-sm">';
 
   for (const group of sidebar) {
     html += '<div class="space-y-1">';
     if (group.title) {
       html += `<div class="font-bold text-[11px] uppercase tracking-wider text-muted-foreground/70 px-3 py-2 select-none">${escapeHtml(group.title)}</div>`;
     }
-    html += '<ul class="space-y-1">';
+    html += '<ul class="space-y-1" role="list">';
     for (const item of group.items) {
       const isActive = item.route === currentRoute;
       const activeClass = isActive
@@ -389,7 +404,7 @@ function renderSidebarHtml(sidebar, currentRoute, base = '/') {
 
       html += `
         <li>
-          <a href="${withBase(item.route, base)}" class="block px-3 py-1.5 rounded-lg text-[13px] transition-all ${activeClass}">
+          <a href="${withBase(item.route, base)}" aria-current="${isActive ? 'page' : 'false'}" class="block px-3 py-1.5 rounded-lg text-[13px] transition-all ${activeClass}">
             ${escapeHtml(item.title)}
           </a>
         </li>`;
@@ -404,7 +419,7 @@ function renderSidebarHtml(sidebar, currentRoute, base = '/') {
 function renderTocHtml(toc) {
   if (!toc || toc.length === 0) return '';
 
-  let html = '<ul class="space-y-0.5 text-[13px] border-l border-border/60 pl-2 font-normal">';
+  let html = '<ul class="space-y-0.5 text-[13px] border-l border-border/60 pl-2 font-normal" role="list">';
   for (const item of toc) {
     const indent = item.level === 3 ? 'pl-3' : '';
     html += `

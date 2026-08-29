@@ -43,6 +43,7 @@ export function parseArgs(rawArgs = process.argv.slice(2)) {
     dryRun: false,
     force: false,
     github: false,
+    a11y: false,
     unknown: []
   };
 
@@ -74,6 +75,8 @@ export function parseArgs(rawArgs = process.argv.slice(2)) {
       flags.force = true;
     } else if (arg === '--github') {
       flags.github = true;
+    } else if (arg === '--a11y') {
+      flags.a11y = true;
     } else if (arg === '--quiet') {
       flags.quiet = true;
     } else if (arg === '--verbose') {
