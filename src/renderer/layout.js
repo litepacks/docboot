@@ -103,7 +103,6 @@ export function renderLayout({
   <meta property="og:title" content="${escapeHtml(pageTitle)}">
   ${pageDesc ? `<meta property="og:description" content="${escapeHtml(pageDesc)}">` : ''}
   ${canonicalUrl ? `<meta property="og:url" content="${canonicalUrl}">` : ''}
-  <meta name="twitter:card" content="summary_large_image">
 
   <!-- Anti-flash theme bootstrapper -->
   <script>${THEME_INIT_SCRIPT}</script>
