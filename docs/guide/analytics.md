@@ -75,4 +75,4 @@ Docboot solves this by dispatching route change events automatically:
 
 - [Production Assets](/tooling/assets) — Favicons and social preview cards
 - [Docboot Doctor](/tooling/doctor) — Validating links and assets
-- [GitHub Pages Deployment](/tooling/github-pages) — Automated deployment workflow
+- [GitHub Pages Setup](/tooling/github-pages) — Automated workflow setup

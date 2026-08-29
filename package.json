@@ -1,6 +1,6 @@
 {
   "name": "docboot",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Ultra-fast zero-config Markdown documentation generator with local client search, soft SPA navigation, and modern developer aesthetics",
   "type": "module",
   "main": "src/index.js",
@@ -11,7 +11,8 @@
     "dev": "node ./bin/docboot.js dev ./docs",
     "build": "node ./bin/docboot.js build ./docs --pwa",
     "serve": "node ./bin/docboot.js serve ./dist",
-    "test": "node --test tests/**/*.test.js"
+    "test": "node --test tests/**/*.test.js",
+    "benchmark": "node scripts/benchmark.js"
   },
   "keywords": [
     "docboot",

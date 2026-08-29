@@ -1,6 +1,29 @@
 import path from 'node:path';
 import { formatSegmentName, extractNumericOrder, stripNumericPrefix } from './tree.js';
 
+const DEFAULT_GROUP_ORDER = {
+  'getting-started': 10,
+  'start': 10,
+  'intro': 10,
+  'introduction': 10,
+  'guide': 20,
+  'guides': 20,
+  'tutorial': 20,
+  'tutorials': 20,
+  'core': 25,
+  'features': 25,
+  'tooling': 30,
+  'tools': 30,
+  'advanced': 40,
+  'architecture': 45,
+  'reference': 50,
+  'api': 60,
+  'config': 65,
+  'configuration': 65,
+  'changelog': 70,
+  'faq': 80
+};
+
 /**
  * Builds hierarchical sidebar navigation tree from routes list.
  * 
@@ -39,13 +62,14 @@ export function buildSidebar(pages, customSidebar = null) {
       const groupKey = parts[0];
       const cleanGroupKey = stripNumericPrefix(groupKey);
       const groupNumericOrder = extractNumericOrder(groupKey);
+      const defaultOrder = DEFAULT_GROUP_ORDER[cleanGroupKey.toLowerCase()] ?? 999;
       const groupTitle = formatSegmentName(cleanGroupKey);
 
       if (!groupsMap.has(cleanGroupKey)) {
         groupsMap.set(cleanGroupKey, {
           title: groupTitle,
           key: cleanGroupKey,
-          order: groupNumericOrder ?? 999,
+          order: groupNumericOrder ?? defaultOrder,
           items: []
         });
       }

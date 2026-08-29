@@ -19,15 +19,16 @@ npx docboot .
 
 Docboot is a zero-config documentation CLI that transforms any directory of Markdown files into portable static HTML with local in-browser search, progressive enhancement navigation, and built-in docs tooling.
 
-### Traditional Docs vs Docboot
+### Framework-Oriented Docs vs Docboot
+
+Many framework-oriented documentation tools start by scaffolding or configuring a dedicated docs application:
 
 ```text
-Traditional documentation tools:
-1. Initialize a separate documentation repository or workspace
-2. Install framework dependencies (Vite, Next, Astro, React, Vue)
-3. Write custom config and theme scaffolding
-4. Migrate or copy Markdown files into framework structure
-5. Maintain documentation framework dependencies over time
+Framework-oriented workflow:
+1. Scaffold dedicated documentation workspace
+2. Configure bundler, routing, and theme templates
+3. Import or restructure Markdown files
+4. Maintain documentation application dependencies
 
 Docboot workflow:
 1. cd your-existing-project

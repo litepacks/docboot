@@ -95,13 +95,13 @@ Docboot's test suite and compiler are continuously verified across the following
 
 ## Reproducing Benchmarks Locally
 
-You can run Docboot's internal test and benchmark suite locally:
+You can run Docboot's internal benchmark suite locally:
 
 ```bash
 git clone https://github.com/litepacks/docboot.git
 cd docboot
 npm install
-npm test
+npm run benchmark
 ```
 
 ---

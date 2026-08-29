@@ -94,6 +94,7 @@ dist/
 
 ## Next Steps
 
-- [Docboot Doctor](/tooling/doctor) — Validating documentation health
-- [GitHub Pages Deployment](/tooling/github-pages) — Automated CI/CD deployment
+- [Docboot Doctor](/tooling/doctor) — Diagnostics for links and assets
+- [Docboot Stats](/tooling/stats) — Documentation metrics and bundle analysis
+- [GitHub Pages Setup](/tooling/github-pages) — Automated CI/CD workflow setup
 - [Architecture & Runtime](/advanced/architecture) — Static build pipeline details

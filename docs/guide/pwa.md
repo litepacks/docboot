@@ -52,4 +52,4 @@ When PWA mode is enabled, the production build automatically generates:
 
 - [Analytics Integration](/guide/analytics) — Connecting privacy-friendly analytics
 - [Production Assets](/tooling/assets) — Generating favicons and social banners
-- [GitHub Pages Deployment](/tooling/github-pages) — Automated CI/CD deployment
+- [GitHub Pages Setup](/tooling/github-pages) — Automated CI/CD workflow setup
