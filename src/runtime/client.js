@@ -493,18 +493,25 @@
     var input = document.getElementById('docboot-search-input') || document.getElementById('euix-search-input');
     var resultsContainer = document.getElementById('docboot-search-results') || document.getElementById('euix-search-results');
     var triggers = document.querySelectorAll('.docboot-search-trigger, .euix-search-trigger');
+    var clearBtn = document.getElementById('docboot-search-clear');
+    var escBadge = modal.querySelector('kbd[aria-label*="Escape"]');
 
     if (!modal || !input || !resultsContainer) return;
 
     var selectedIndex = -1;
     var currentResults = [];
 
+    function resetEmptyState() {
+      resultsContainer.innerHTML = '<div class="py-12 px-6 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-2 select-none"><svg class="w-8 h-8 text-muted-foreground/40 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span class="font-medium text-foreground/80">Search documentation</span><span class="text-xs text-muted-foreground/70">Type keywords, topics, or CLI commands</span></div>';
+    }
+
     function openModal() {
       modal.classList.remove('hidden');
       input.value = '';
+      if (clearBtn) clearBtn.classList.add('hidden');
       selectedIndex = -1;
       currentResults = [];
-      resultsContainer.innerHTML = '<div class="p-8 text-center text-sm text-muted-foreground">Type to search documentation...</div>';
+      resetEmptyState();
       trapModalFocus(modal, input);
       announceA11y('Search dialog opened');
 
@@ -523,6 +530,18 @@
     });
 
     if (backdrop) backdrop.addEventListener('click', closeModal);
+    if (escBadge) escBadge.addEventListener('click', closeModal);
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function() {
+        input.value = '';
+        clearBtn.classList.add('hidden');
+        selectedIndex = -1;
+        currentResults = [];
+        resetEmptyState();
+        input.focus();
+      });
+    }
 
     // Pre-warm search engine during idle cycles so Cmd+K is instant with 0ms delay
     var idleCallback = window.requestIdleCallback || function(cb) { setTimeout(cb, 1200); };
@@ -555,14 +574,18 @@
       var searchConfig = window.__DOCBOOT_SEARCH_CONFIG__ || window.__EUIX_SEARCH_CONFIG__ || {};
       var minLen = searchConfig.minQueryLength || 2;
 
+      if (clearBtn) {
+        clearBtn.classList.toggle('hidden', !query);
+      }
+
       if (!q || q.length < minLen) {
-        resultsContainer.innerHTML = '<div class="p-8 text-center text-sm text-muted-foreground">Type at least ' + minLen + ' characters to search...</div>';
+        resultsContainer.innerHTML = '<div class="py-12 px-6 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-2 select-none"><svg class="w-8 h-8 text-muted-foreground/40 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span class="font-medium text-foreground/80">Search documentation</span><span class="text-xs text-muted-foreground/70">Type at least ' + minLen + ' characters...</span></div>';
         currentResults = [];
         return;
       }
 
       if (!searchEngine) {
-        resultsContainer.innerHTML = '<div class="p-8 text-center text-sm text-muted-foreground flex items-center justify-center gap-2"><svg class="animate-spin w-4 h-4 text-accent" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Initializing search...</div>';
+        resultsContainer.innerHTML = '<div class="py-12 px-6 text-center text-sm text-muted-foreground flex items-center justify-center gap-2.5"><svg class="animate-spin w-4 h-4 text-accent" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> <span>Initializing search...</span></div>';
         loadSearch().then(function(engine) {
           if (engine && input.value.trim() === q) {
             currentResults = engine.search(q);
@@ -582,31 +605,31 @@
       var minLen = (window.__EUIX_SEARCH_CONFIG__ && window.__EUIX_SEARCH_CONFIG__.minQueryLength) || 2;
 
       if (!query || query.length < minLen) {
-        resultsContainer.innerHTML = '<div class="p-8 text-center text-sm text-muted-foreground">Type at least ' + minLen + ' characters to search...</div>';
+        resetEmptyState();
         return;
       }
 
       if (results.length === 0) {
-        resultsContainer.innerHTML = '<div class="p-8 text-center text-sm text-muted-foreground">No matching documents for <span class="font-medium text-foreground">"' + escapeHtml(query) + '"</span></div>';
+        resultsContainer.innerHTML = '<div class="py-12 px-6 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-2 select-none"><svg class="w-8 h-8 text-muted-foreground/40 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="font-medium text-foreground">No results found</span><span class="text-xs text-muted-foreground/70">No documents matched "<span class="font-medium text-foreground/90">' + escapeHtml(query) + '</span>"</span></div>';
         announceA11y('No matching documents found');
         return;
       }
 
       announceA11y(results.length + ' search result' + (results.length === 1 ? '' : 's') + ' found');
 
-      var html = '<div class="p-2 space-y-1">';
+      var html = '<div class="p-1.5 space-y-1">';
       for (var i = 0; i < results.length; i++) {
         var item = results[i];
         var isSelected = i === selectedIndex;
         var activeClass = isSelected
-          ? 'bg-accent/10 border-accent/40 text-foreground ring-1 ring-accent/30'
-          : 'hover:bg-muted/60 text-foreground/90 border-transparent';
+          ? 'bg-accent/12 border-accent/40 text-foreground ring-1 ring-accent/30 shadow-2xs'
+          : 'hover:bg-muted/50 text-foreground/90 border-transparent';
 
-        html += '<a href="' + resolveBase(item.route) + '" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '" class="search-result-item flex items-center justify-between p-3 rounded-lg border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
+        html += '<a href="' + resolveBase(item.route) + '" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '" class="search-result-item flex items-center justify-between p-3 rounded-xl border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
         html += '<div class="flex-1 min-w-0 pr-3">';
         html += '<div class="font-medium text-foreground truncate">' + escapeHtml(item.title) + '</div>';
         if (item.section) {
-          html += '<div class="text-xs text-muted-foreground truncate mt-0.5 font-normal flex items-center gap-1"><span class="text-accent/70">#</span> ' + escapeHtml(item.section) + '</div>';
+          html += '<div class="text-xs text-muted-foreground truncate mt-0.5 font-normal flex items-center gap-1"><span class="text-accent/80 font-mono">#</span> ' + escapeHtml(item.section) + '</div>';
         }
         if (item.snippet) {
           html += '<div class="text-xs text-muted-foreground/80 truncate mt-1">' + escapeHtml(item.snippet) + '</div>';

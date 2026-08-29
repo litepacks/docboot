@@ -539,12 +539,21 @@ html[data-font-family="system"] {
 
 button:focus-visible,
 a:focus-visible,
-input:focus-visible,
+input:focus-visible:not(#docboot-search-input):not(.docboot-search-input),
 summary:focus-visible,
 [role="tab"]:focus-visible,
 [role="button"]:focus-visible {
   outline: 2px solid var(--focus-ring) !important;
   outline-offset: 2px !important;
+}
+
+#docboot-search-input:focus,
+#docboot-search-input:focus-visible,
+.docboot-search-input:focus,
+.docboot-search-input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 /* Skip Link */

@@ -352,22 +352,29 @@ export function renderLayout({
 
   <!-- Command Palette Search Modal (Cmd+K) -->
   <div id="docboot-search-modal" role="dialog" aria-modal="true" aria-label="Search documentation" class="docboot-search-modal euix-search-modal fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 md:p-20 hidden">
-    <div id="docboot-search-backdrop" class="docboot-search-backdrop euix-search-backdrop fixed inset-0 bg-black/70 backdrop-blur-md transition-opacity"></div>
-    <div class="relative mx-auto max-w-2xl rounded-2xl border border-border bg-card-bg shadow-2xl overflow-hidden text-foreground">
-      <div class="flex items-center border-b border-border px-4 py-3.5 bg-muted/20">
-        <svg class="w-5 h-5 text-muted-foreground mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        <input id="docboot-search-input" type="text" placeholder="Search documentation..." aria-label="Search documentation" aria-autocomplete="list" aria-controls="docboot-search-results" class="docboot-search-input euix-search-input w-full bg-transparent text-sm focus:outline-none text-foreground placeholder:text-muted-foreground" autocomplete="off" />
-        <kbd class="px-2 py-0.5 rounded-md border border-border text-[10px] text-muted-foreground font-mono bg-muted/60" aria-label="Escape key to close">ESC</kbd>
+    <div id="docboot-search-backdrop" class="docboot-search-backdrop euix-search-backdrop fixed inset-0 bg-black/75 backdrop-blur-md transition-opacity"></div>
+    <div class="relative mx-auto max-w-2xl rounded-2xl border border-border/80 bg-card-bg shadow-2xl overflow-hidden text-foreground ring-1 ring-white/10">
+      <div class="flex items-center border-b border-border/80 px-4 sm:px-5 py-3.5 bg-muted/20 transition-colors focus-within:bg-muted/40">
+        <svg class="w-5 h-5 text-accent mr-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="docboot-search-input" type="text" placeholder="Search documentation..." aria-label="Search documentation" aria-autocomplete="list" aria-controls="docboot-search-results" class="docboot-search-input euix-search-input w-full bg-transparent text-base sm:text-[16px] font-normal leading-normal text-foreground placeholder:text-muted-foreground/60 border-0 outline-none ring-0 shadow-none focus:outline-none focus:ring-0" autocomplete="off" spellcheck="false" />
+        <button type="button" id="docboot-search-clear" class="hidden p-1 mr-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer" aria-label="Clear search query">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+        <kbd class="px-2 py-0.5 rounded-md border border-border/80 text-[11px] text-muted-foreground font-mono bg-muted/60 shadow-2xs select-none" aria-label="Escape key to close">ESC</kbd>
       </div>
       <div id="docboot-search-results" role="listbox" aria-label="Search results" class="docboot-search-results euix-search-results max-h-96 overflow-y-auto divide-y divide-border/40 p-2">
-        <div class="p-8 text-center text-sm text-muted-foreground">Type to search documentation...</div>
-      </div>
-      <div class="px-4 py-2.5 border-t border-border bg-muted/30 flex items-center justify-between text-[11px] text-muted-foreground">
-        <div class="flex items-center gap-3">
-          <span><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg">↑</kbd> <kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg">↓</kbd> to navigate</span>
-          <span><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg">↵</kbd> to select</span>
+        <div class="py-12 px-6 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-2 select-none">
+          <svg class="w-8 h-8 text-muted-foreground/40 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <span class="font-medium text-foreground/80">Search documentation</span>
+          <span class="text-xs text-muted-foreground/70">Type keywords, topics, or CLI commands</span>
         </div>
-        <span><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg">ESC</kbd> to close</span>
+      </div>
+      <div class="px-4 py-2.5 border-t border-border/80 bg-muted/30 flex items-center justify-between text-[11px] text-muted-foreground select-none">
+        <div class="flex items-center gap-3">
+          <span><kbd class="px-1.5 py-0.5 rounded border border-border/80 bg-card-bg shadow-2xs">↑</kbd> <kbd class="px-1.5 py-0.5 rounded border border-border/80 bg-card-bg shadow-2xs">↓</kbd> to navigate</span>
+          <span><kbd class="px-1.5 py-0.5 rounded border border-border/80 bg-card-bg shadow-2xs">↵</kbd> to select</span>
+        </div>
+        <span><kbd class="px-1.5 py-0.5 rounded border border-border/80 bg-card-bg shadow-2xs">ESC</kbd> to close</span>
       </div>
     </div>
   </div>
