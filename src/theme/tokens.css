@@ -648,3 +648,22 @@ html.filter-tritanopia {
   filter: url('#docboot-tritanopia');
 }
 
+/* Sidebar Hierarchical Navigation & Collapsible Groups */
+.docboot-sidebar-submenu {
+  transition: opacity 0.2s ease;
+}
+
+.docboot-sidebar-group-toggle svg {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.docboot-sidebar-group-toggle-title {
+  cursor: pointer;
+}
+
+.docboot-sidebar-group-toggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+

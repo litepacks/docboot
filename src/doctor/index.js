@@ -247,16 +247,26 @@ export class Doctor {
     // 3. Check for orphan pages
     const sidebar = buildSidebar(pages, this.config.sidebar);
     const sidebarRoutes = new Set();
-    for (const group of sidebar) {
-      if (group.items) {
-        for (const item of group.items) {
-          sidebarRoutes.add(item.route);
+
+    function collectRoutes(items) {
+      if (!Array.isArray(items)) return;
+      for (const item of items) {
+        if (item.route) sidebarRoutes.add(item.route);
+        if (item.items && item.items.length > 0) {
+          collectRoutes(item.items);
         }
       }
     }
 
+    for (const group of sidebar) {
+      if (group.route) sidebarRoutes.add(group.route);
+      if (group.items) {
+        collectRoutes(group.items);
+      }
+    }
+
     for (const page of pages) {
-      if (!page.frontmatter?.draft && !sidebarRoutes.has(page.route)) {
+      if (!page.frontmatter?.draft && !page.frontmatter?.hidden && !sidebarRoutes.has(page.route)) {
         warnings.push({
           type: 'Orphan Page',
           message: `"${page.relativePath}" (${page.route}) is not reachable from the sidebar navigation.`

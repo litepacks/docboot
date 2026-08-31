@@ -1271,20 +1271,8 @@
         if (backdrop) backdrop.classList.add('hidden');
       }
 
-      // Update sidebar active link highlights
-      document.querySelectorAll('aside nav a').forEach(function(a) {
-        var aUrl = new URL(a.getAttribute('href'), window.location.origin);
-        if (
-          aUrl.pathname === cleanPath ||
-          aUrl.pathname === cleanPath.replace(/\/$/, '') ||
-          cleanPath === aUrl.pathname.replace(/\/$/, '')
-        ) {
-          a.className = 'block px-3 py-1.5 rounded-lg text-[13px] transition-all bg-accent/10 text-accent font-semibold relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-full before:bg-accent';
-          a.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        } else {
-          a.className = 'block px-3 py-1.5 rounded-lg text-[13px] transition-all text-muted-foreground hover:text-foreground hover:bg-muted/60 font-medium';
-        }
-      });
+      // Update sidebar active link highlights & expand parent branches
+      autoExpandActiveSidebarBranch(cleanPath);
     }
 
     function applyNewPageHtml(htmlString) {
@@ -1836,6 +1824,91 @@
     });
   }
 
+  // --- 12. Collapsible Sidebar Groups & Active Branch Expansion ---
+  function initSidebarCollapsible() {
+    document.addEventListener('click', function(e) {
+      var toggleBtn = e.target.closest('.docboot-sidebar-group-toggle');
+      if (!toggleBtn) {
+        var toggleTitle = e.target.closest('.docboot-sidebar-group-toggle-title');
+        if (toggleTitle) {
+          var parentGroup = toggleTitle.closest('.docboot-sidebar-group, .docboot-sidebar-root-group');
+          if (parentGroup) {
+            toggleBtn = parentGroup.querySelector('.docboot-sidebar-group-toggle');
+          }
+        }
+      }
+
+      if (!toggleBtn) return;
+
+      var targetId = toggleBtn.getAttribute('aria-controls');
+      if (!targetId) return;
+
+      var targetSubmenu = document.getElementById(targetId);
+      if (!targetSubmenu) return;
+
+      var isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+      var nextExpanded = !isExpanded;
+
+      toggleBtn.setAttribute('aria-expanded', String(nextExpanded));
+      var svg = toggleBtn.querySelector('svg');
+
+      if (nextExpanded) {
+        targetSubmenu.classList.remove('hidden');
+        if (svg) {
+          svg.classList.remove('-rotate-90');
+          svg.classList.add('rotate-0');
+        }
+      } else {
+        targetSubmenu.classList.add('hidden');
+        if (svg) {
+          svg.classList.remove('rotate-0');
+          svg.classList.add('-rotate-90');
+        }
+      }
+
+      try {
+        var saved = JSON.parse(localStorage.getItem('docboot-sidebar-collapsed') || '{}');
+        saved[targetId] = !nextExpanded;
+        localStorage.setItem('docboot-sidebar-collapsed', JSON.stringify(saved));
+      } catch (err) {}
+    });
+  }
+
+  function autoExpandActiveSidebarBranch(cleanPath) {
+    document.querySelectorAll('.docboot-sidebar-desktop a, .docboot-mobile-drawer a').forEach(function(a) {
+      var href = a.getAttribute('href');
+      if (!href) return;
+      var aUrl = new URL(href, window.location.origin);
+      var isCurrent = aUrl.pathname === cleanPath ||
+                      aUrl.pathname === cleanPath.replace(/\/$/, '') ||
+                      cleanPath === aUrl.pathname.replace(/\/$/, '');
+
+      if (isCurrent) {
+        a.setAttribute('aria-current', 'page');
+        a.className = 'flex items-center justify-between px-3 py-1.5 rounded-lg text-[13px] transition-all bg-accent/10 text-accent font-semibold relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-full before:bg-accent';
+
+        // Auto expand all parent submenus of this active link
+        var parentSubmenu = a.closest('.docboot-sidebar-submenu');
+        while (parentSubmenu) {
+          parentSubmenu.classList.remove('hidden');
+          var toggle = document.querySelector('[aria-controls="' + parentSubmenu.id + '"]');
+          if (toggle) {
+            toggle.setAttribute('aria-expanded', 'true');
+            var svg = toggle.querySelector('svg');
+            if (svg) {
+              svg.classList.remove('-rotate-90');
+              svg.classList.add('rotate-0');
+            }
+          }
+          parentSubmenu = parentSubmenu.parentElement ? parentSubmenu.parentElement.closest('.docboot-sidebar-submenu') : null;
+        }
+      } else if (!a.classList.contains('docboot-brand-link') && !a.closest('.docboot-sidebar-group-active')) {
+        a.setAttribute('aria-current', 'false');
+        a.className = 'flex items-center justify-between px-3 py-1.5 rounded-lg text-[13px] transition-all text-muted-foreground hover:text-foreground hover:bg-muted/60 font-medium';
+      }
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     initTheme();
     initCopyButtons();
@@ -1849,5 +1922,7 @@
     initSoftNavigation();
     initLiveReload();
     initScrollRestoration();
+    initSidebarCollapsible();
   });
 })();
+

@@ -1,6 +1,6 @@
 {
   "name": "docboot",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "Ultra-fast zero-config Markdown documentation generator with local client search, soft SPA navigation, and modern developer aesthetics",
   "type": "module",
   "main": "src/index.js",

@@ -3,7 +3,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import util from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { scanMarkdownFiles } from '../scanner/index.js';
+import { scanMarkdownFiles, scanDirectoryMeta } from '../scanner/index.js';
 import { parseMarkdown } from '../markdown/parser.js';
 import { extractFrontmatter } from '../markdown/frontmatter.js';
 import { filePathToRoute, deriveTitle, formatSegmentName } from '../routes/tree.js';
@@ -60,8 +60,9 @@ export class SiteBuilder {
     const configHash = this.computeConfigHash();
     this.cache.setConfigHash(configHash);
 
-    // 1. Scan markdown files
+    // 1. Scan markdown files & directory meta
     const fileEntries = scanMarkdownFiles(this.config.docsDir);
+    const dirMetaMap = scanDirectoryMeta(this.config.docsDir);
     const pages = [];
 
     if (fileEntries.length === 0) {
@@ -243,7 +244,7 @@ export class SiteBuilder {
     }
 
     // 2. Build Sidebar & Navigation maps
-    const sidebar = buildSidebar(pages, this.config.sidebar);
+    const sidebar = buildSidebar(pages, this.config.sidebar, { metaMap: dirMetaMap });
     const prevNextMap = buildPrevNextMap(sidebar);
 
     // 3. Search index & search asset setup (reuses cached search entries)
