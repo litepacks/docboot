@@ -175,7 +175,7 @@ export class SiteBuilder {
     }
 
     for (const [catRoute, catData] of categoryGroups.entries()) {
-      if (!existingRoutes.has(catRoute)) {
+      if (!existingRoutes.has(catRoute) && catRoute !== '/docs' && catRoute !== '/doc') {
         const catTitle = formatSegmentName(catData.segment);
         const uniqueChildren = Array.from(new Set(catData.children));
 

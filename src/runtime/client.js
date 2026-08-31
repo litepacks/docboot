@@ -682,6 +682,7 @@
   // --- 6. Lazy-Loaded Mermaid Diagram Renderer & In-Memory SVG Cache ---
   var mermaidLoading = false;
   var mermaidSvgCache = new Map();
+  var mermaidObserver = null;
 
   function initMermaid(forceRerender) {
     var elements = Array.from(document.querySelectorAll('.mermaid'));
@@ -1256,6 +1257,18 @@
         currentAsideRight.innerHTML = '';
       }
 
+      var newSidebarDesktop = tpl.content.querySelector('#docboot-sidebar-desktop, .docboot-sidebar-desktop');
+      var currentSidebarDesktop = document.querySelector('#docboot-sidebar-desktop, .docboot-sidebar-desktop');
+      if (newSidebarDesktop && currentSidebarDesktop) {
+        currentSidebarDesktop.innerHTML = newSidebarDesktop.innerHTML;
+      }
+
+      var newSidebarMobile = tpl.content.querySelector('#docboot-mobile-drawer nav, .docboot-mobile-drawer nav');
+      var currentSidebarMobile = document.querySelector('#docboot-mobile-drawer nav, .docboot-mobile-drawer nav');
+      if (newSidebarMobile && currentSidebarMobile) {
+        currentSidebarMobile.innerHTML = newSidebarMobile.innerHTML;
+      }
+
       var titleMatch = htmlString.match(/<title>([^<]+)<\/title>/i);
       if (titleMatch) {
         var decoder = document.createElement('textarea');
@@ -1271,7 +1284,7 @@
         if (backdrop) backdrop.classList.add('hidden');
       }
 
-      // Update sidebar active link highlights & expand parent branches
+      // Ensure active sidebar branch is expanded and in view
       autoExpandActiveSidebarBranch(cleanPath);
     }
 
@@ -1885,7 +1898,6 @@
 
       if (isCurrent) {
         a.setAttribute('aria-current', 'page');
-        a.className = 'flex items-center justify-between px-3 py-1.5 rounded-lg text-[13px] transition-all bg-accent/10 text-accent font-semibold relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r-full before:bg-accent';
 
         // Auto expand all parent submenus of this active link
         var parentSubmenu = a.closest('.docboot-sidebar-submenu');
@@ -1902,9 +1914,6 @@
           }
           parentSubmenu = parentSubmenu.parentElement ? parentSubmenu.parentElement.closest('.docboot-sidebar-submenu') : null;
         }
-      } else if (!a.classList.contains('docboot-brand-link') && !a.closest('.docboot-sidebar-group-active')) {
-        a.setAttribute('aria-current', 'false');
-        a.className = 'flex items-center justify-between px-3 py-1.5 rounded-lg text-[13px] transition-all text-muted-foreground hover:text-foreground hover:bg-muted/60 font-medium';
       }
     });
   }
