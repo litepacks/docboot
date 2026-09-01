@@ -107,13 +107,13 @@ export function parseMarkdown(rawMarkdown, options = {}) {
 
       return `
 <figure class="docboot-figure not-prose my-8 text-center">
-  <div class="inline-block relative overflow-hidden rounded-2xl border border-border/80 bg-card-bg/40 shadow-sm group">
+  <div class="inline-block relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs group">
     <img
       src="${normalizedHref}"
       alt="${escapeHtml(text || title || '')}"
       loading="lazy"
       decoding="async"
-      class="block max-w-full h-auto rounded-2xl cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]"
+      class="block max-w-full h-auto rounded-lg cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]"
       data-docboot-lightbox="true"
       data-lightbox-src="${normalizedHref}"
       data-lightbox-alt="${escapeHtml(text || title || '')}"
@@ -150,14 +150,14 @@ export function parseMarkdown(rawMarkdown, options = {}) {
       bodyHtml += `</tbody>`;
 
       return `
-<div class="my-8 w-full overflow-x-auto rounded-xl border border-border bg-card-bg shadow-xs">
+<div class="my-8 w-full overflow-x-auto rounded-lg border border-border bg-card-bg shadow-2xs">
   <table class="w-full text-left border-collapse">${headerHtml}${bodyHtml}</table>
 </div>`;
     },
 
     blockquote({ tokens }) {
       const body = this.parser.parse(tokens);
-      return `<blockquote class="my-6 pl-4 py-1.5 border-l-2 border-accent bg-accent/5 rounded-r-lg text-foreground/90 italic font-normal text-sm leading-relaxed">${body}</blockquote>`;
+      return `<blockquote class="my-6 pl-4 py-1.5 border-l-2 border-accent bg-accent/5 rounded-r-md text-foreground/90 italic font-normal text-sm leading-relaxed">${body}</blockquote>`;
     },
 
     link({ href, title, tokens }) {

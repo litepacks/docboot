@@ -78,7 +78,7 @@ export function renderCodeBlock(code, info = '') {
     const diagramTitle = filename || 'Mermaid Diagram';
 
     return `
-<figure role="figure" aria-label="${escapeHtml(diagramTitle)}" class="docboot-mermaid-wrapper not-prose my-6 rounded-xl border border-border/80 bg-card-bg/40 shadow-sm overflow-hidden">
+<figure role="figure" aria-label="${escapeHtml(diagramTitle)}" class="docboot-mermaid-wrapper not-prose my-6 rounded-lg border border-border bg-card-bg/40 shadow-xs overflow-hidden">
   <div class="flex items-center justify-between px-4 py-2 border-b border-border/60 bg-muted/20 text-xs font-mono select-none">
     <figcaption class="text-[11px] font-semibold text-accent uppercase tracking-wider flex items-center gap-1.5">
       <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3h6v6H3zM15 3h6v6h-6zM9 15h6v6H9z"/><path d="M6 9v3a3 3 0 003 3h3m3-6v3a3 3 0 01-3 3"/></svg>
@@ -138,7 +138,7 @@ export function renderCodeBlock(code, info = '') {
   const extraContainerClass = hasLineHighlight ? ' has-highlighted-lines' : '';
 
   return `
-<div class="docboot-codeblock euix-codeblock group my-6 rounded-xl border border-border/80 bg-[#0d1117] text-[#e6edf3] shadow-lg shadow-black/10 overflow-hidden text-sm${extraContainerClass}">
+<div class="docboot-codeblock euix-codeblock group my-6 rounded-lg border border-border/90 bg-[#0d1117] text-[#e6edf3] shadow-md shadow-black/10 overflow-hidden text-sm${extraContainerClass}">
   <div class="flex items-center justify-between px-4 py-2.5 border-b border-[#21262d] bg-[#161b22] text-xs font-mono select-none">
     <div class="flex items-center gap-2">
       <div class="flex items-center gap-1.5 mr-2">
@@ -149,8 +149,8 @@ export function renderCodeBlock(code, info = '') {
       ${headerTitle ? `<span class="font-medium text-[#8b949e] tracking-tight">${escapeHtml(headerTitle)}</span>` : ''}
     </div>
     <div class="flex items-center gap-2">
-      ${displayLang && filename ? `<span class="text-[10px] px-2 py-0.5 rounded-md bg-[#21262d] text-[#8b949e] font-semibold uppercase tracking-wider">${displayLang}</span>` : ''}
-      <button type="button" class="docboot-copy-btn euix-copy-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d] transition-all cursor-pointer" data-code="${escapeHtml(code)}" aria-label="Copy code">
+      ${displayLang && filename ? `<span class="text-[10px] px-2 py-0.5 rounded-[3px] bg-[#21262d] text-[#8b949e] font-semibold uppercase tracking-wider">${displayLang}</span>` : ''}
+      <button type="button" class="docboot-copy-btn euix-copy-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs text-[#8b949e] hover:text-[#e6edf3] hover:bg-[#21262d] transition-all cursor-pointer" data-code="${escapeHtml(code)}" aria-label="Copy code">
         <span class="copy-icon">${copyIconSvg}</span>
         <span class="copied-icon hidden">${checkIconSvg}</span>
         <span class="copy-text text-[11px] font-medium">Copy</span>

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 import { buildSidebar, buildPrevNextMap, buildBreadcrumbs } from '../src/routes/navigation.js';
 import { filePathToRoute, deriveTitle } from '../src/routes/tree.js';
+import { renderLayout } from '../src/renderer/layout.js';
 
 test('Sidebar Hierarchy: EUIX project structure categorization and numeric ordering', () => {
   // Simulates the exact structure reported by the user:
@@ -214,4 +215,48 @@ test('Sidebar Hierarchy: sort "natural" and useHeuristics false disables heurist
   assert.strictEqual(customOrderSidebar[1].title, 'Guide');
   assert.strictEqual(customOrderSidebar[2].title, 'Getting Started');
 });
+
+test('Sidebar Hierarchy: Desktop and mobile sidebars have distinct unique IDs and collapsible toggles', () => {
+  const page = {
+    title: 'Introduction',
+    route: '/docs/intro',
+    relativePath: 'docs/intro.md',
+    html: '<h1>Intro</h1>'
+  };
+
+  const sidebar = [
+    {
+      title: 'Docs',
+      items: [
+        { title: 'Introduction', route: '/docs/intro' },
+        { title: 'Getting Started', route: '/docs/getting-started' }
+      ]
+    }
+  ];
+
+  const html = renderLayout({
+    page,
+    pages: [page],
+    sidebar,
+    config: { title: 'Test Docs' }
+  });
+
+  // Desktop sidebar must have sidebar-desktop prefix
+  assert.ok(html.includes('id="sidebar-desktop-group-1"'));
+  assert.ok(html.includes('aria-controls="sidebar-desktop-group-1"'));
+
+  // Mobile sidebar must have sidebar-mobile prefix
+  assert.ok(html.includes('id="sidebar-mobile-group-1"'));
+  assert.ok(html.includes('aria-controls="sidebar-mobile-group-1"'));
+
+  // Ensure no duplicate IDs between desktop and mobile sidebars
+  const desktopSubmenuMatches = html.match(/id="sidebar-desktop-group-1"/g);
+  const mobileSubmenuMatches = html.match(/id="sidebar-mobile-group-1"/g);
+  assert.strictEqual(desktopSubmenuMatches?.length, 1);
+  assert.strictEqual(mobileSubmenuMatches?.length, 1);
+
+  // Group headers have docboot-sidebar-group-toggle-title for easy clicking
+  assert.ok(html.includes('docboot-sidebar-group-toggle-title'));
+});
+
 

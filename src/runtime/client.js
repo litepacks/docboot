@@ -625,7 +625,7 @@
           ? 'bg-accent/12 border-accent/40 text-foreground ring-1 ring-accent/30 shadow-2xs'
           : 'hover:bg-muted/50 text-foreground/90 border-transparent';
 
-        html += '<a href="' + resolveBase(item.route) + '" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '" class="search-result-item flex items-center justify-between p-3 rounded-xl border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
+        html += '<a href="' + resolveBase(item.route) + '" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '" class="search-result-item flex items-center justify-between p-3 rounded-lg border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
         html += '<div class="flex-1 min-w-0 pr-3">';
         html += '<div class="font-medium text-foreground truncate">' + escapeHtml(item.title) + '</div>';
         if (item.section) {
@@ -892,7 +892,7 @@
           </div>
           <div class="flex items-center gap-2">
             <!-- Zoom Controls -->
-            <div class="flex items-center rounded-lg border border-white/15 bg-white/5 overflow-hidden">
+            <div class="flex items-center rounded-md border border-white/15 bg-white/5 overflow-hidden">
               <button type="button" id="docboot-mermaid-zoom-out" class="p-1.5 hover:bg-white/15 text-white/80 hover:text-white transition-colors cursor-pointer" title="Zoom Out (-)">
                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35M8 11h6"/></svg>
               </button>
@@ -905,7 +905,7 @@
             </div>
 
             <!-- Close Button -->
-            <button type="button" id="docboot-mermaid-modal-close" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer ml-2" aria-label="Close Diagram (Esc)">
+            <button type="button" id="docboot-mermaid-modal-close" class="p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer ml-2" aria-label="Close Diagram (Esc)">
               <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
@@ -913,7 +913,7 @@
 
         <!-- Canvas Viewport -->
         <div id="docboot-mermaid-viewport" class="flex-1 w-full h-full relative overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing p-6 sm:p-12">
-          <div id="docboot-mermaid-stage" class="transition-transform duration-75 origin-center flex items-center justify-center select-none bg-white text-slate-900 p-8 sm:p-12 rounded-2xl shadow-2xl border border-slate-200 min-w-[320px] max-w-[90vw]"></div>
+          <div id="docboot-mermaid-stage" class="transition-transform duration-75 origin-center flex items-center justify-center select-none bg-white text-slate-900 p-8 sm:p-12 rounded-xl shadow-2xl border border-slate-200 min-w-[320px] max-w-[90vw]"></div>
         </div>
       `;
       document.body.appendChild(modal);
@@ -1500,11 +1500,11 @@
         selectedLabel = btn.getAttribute('data-tab-label') || btn.textContent.trim();
         btn.className = isCodeGroup
           ? 'docboot-tab-btn px-3.5 py-2 text-xs transition-all border-b-2 -mb-px rounded-t-md select-none text-accent font-semibold border-accent bg-[#161b22]'
-          : 'docboot-tab-btn px-4 py-2 text-xs transition-all border-b-2 -mb-px rounded-t-lg select-none border-accent text-accent font-semibold bg-card-bg';
+          : 'docboot-tab-btn px-4 py-2 text-xs transition-all border-b-2 -mb-px rounded-t-md select-none border-accent text-accent font-semibold bg-card-bg';
       } else {
         btn.className = isCodeGroup
           ? 'docboot-tab-btn px-3.5 py-2 text-xs transition-all border-b-2 -mb-px rounded-t-md select-none text-[#8b949e] hover:text-[#e6edf3] font-medium border-transparent'
-          : 'docboot-tab-btn px-4 py-2 text-xs transition-all border-b-2 -mb-px rounded-t-lg select-none border-transparent text-muted-foreground hover:text-foreground font-medium';
+          : 'docboot-tab-btn px-4 py-2 text-xs transition-all border-b-2 -mb-px rounded-t-md select-none border-transparent text-muted-foreground hover:text-foreground font-medium';
       }
     }
 
@@ -1615,25 +1615,25 @@
         <div class="relative w-full h-full flex flex-col items-center justify-center pointer-events-none">
           <!-- Top Bar -->
           <div class="absolute top-0 left-0 right-0 flex items-center justify-between p-4 pointer-events-auto z-10">
-            <div id="docboot-lightbox-counter" class="text-xs font-mono font-semibold text-white/70 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm"></div>
-            <button type="button" id="docboot-lightbox-close" class="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/90 hover:text-white transition-all cursor-pointer" aria-label="Close Lightbox (Esc)">
+            <div id="docboot-lightbox-counter" class="text-xs font-mono font-semibold text-white/70 px-2.5 py-1 rounded bg-white/10 backdrop-blur-sm"></div>
+            <button type="button" id="docboot-lightbox-close" class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 hover:text-white transition-all cursor-pointer" aria-label="Close Lightbox (Esc)">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
 
           <!-- Main Image Container -->
           <div class="relative max-w-full max-h-[80vh] flex items-center justify-center pointer-events-auto">
-            <img id="docboot-lightbox-img" src="" alt="" class="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl shadow-black/80 transition-all duration-200" />
+            <img id="docboot-lightbox-img" src="" alt="" class="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl shadow-black/80 transition-all duration-200" />
           </div>
 
           <!-- Caption -->
           <div id="docboot-lightbox-caption" class="mt-4 text-center text-sm font-medium text-white/90 max-w-2xl px-4 pointer-events-auto"></div>
 
           <!-- Prev/Next Controls -->
-          <button type="button" id="docboot-lightbox-prev" class="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all pointer-events-auto cursor-pointer" aria-label="Previous Image (Arrow Left)">
+          <button type="button" id="docboot-lightbox-prev" class="absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-lg bg-white/10 hover:bg-white/25 text-white transition-all pointer-events-auto cursor-pointer" aria-label="Previous Image (Arrow Left)">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
           </button>
-          <button type="button" id="docboot-lightbox-next" class="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 hover:bg-white/25 text-white transition-all pointer-events-auto cursor-pointer" aria-label="Next Image (Arrow Right)">
+          <button type="button" id="docboot-lightbox-next" class="absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-lg bg-white/10 hover:bg-white/25 text-white transition-all pointer-events-auto cursor-pointer" aria-label="Next Image (Arrow Right)">
             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
           </button>
         </div>
@@ -1854,9 +1854,9 @@
       if (!toggleBtn) return;
 
       var targetId = toggleBtn.getAttribute('aria-controls');
-      if (!targetId) return;
-
-      var targetSubmenu = document.getElementById(targetId);
+      var parentGroup = toggleBtn.closest('.docboot-sidebar-group, .docboot-sidebar-root-group');
+      var targetSubmenu = (targetId ? document.getElementById(targetId) : null) ||
+                          (parentGroup ? parentGroup.querySelector('.docboot-sidebar-submenu') : null);
       if (!targetSubmenu) return;
 
       var isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
@@ -1879,11 +1879,13 @@
         }
       }
 
-      try {
-        var saved = JSON.parse(localStorage.getItem('docboot-sidebar-collapsed') || '{}');
-        saved[targetId] = !nextExpanded;
-        localStorage.setItem('docboot-sidebar-collapsed', JSON.stringify(saved));
-      } catch (err) {}
+      if (targetId) {
+        try {
+          var saved = JSON.parse(localStorage.getItem('docboot-sidebar-collapsed') || '{}');
+          saved[targetId] = !nextExpanded;
+          localStorage.setItem('docboot-sidebar-collapsed', JSON.stringify(saved));
+        } catch (err) {}
+      }
     });
   }
 
@@ -1903,7 +1905,9 @@
         var parentSubmenu = a.closest('.docboot-sidebar-submenu');
         while (parentSubmenu) {
           parentSubmenu.classList.remove('hidden');
-          var toggle = document.querySelector('[aria-controls="' + parentSubmenu.id + '"]');
+          var parentGroup = parentSubmenu.closest('.docboot-sidebar-group, .docboot-sidebar-root-group');
+          var toggle = (parentSubmenu.id ? document.querySelector('[aria-controls="' + parentSubmenu.id + '"]') : null) ||
+                       (parentGroup ? parentGroup.querySelector('.docboot-sidebar-group-toggle') : null);
           if (toggle) {
             toggle.setAttribute('aria-expanded', 'true');
             var svg = toggle.querySelector('svg');

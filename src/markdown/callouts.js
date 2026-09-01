@@ -46,7 +46,7 @@ export function processCallouts(markdown) {
     const innerHtml = marked.parse(body.trim());
 
     return `
-<div class="euix-callout my-6 rounded-r-xl p-4 text-sm leading-relaxed ${config.containerClass} shadow-xs">
+<div class="euix-callout my-6 rounded-r-lg p-4 text-sm leading-relaxed ${config.containerClass} shadow-2xs">
   <div class="flex items-center gap-2 mb-1.5 ${config.titleClass}">
     ${config.icon}
     <span>${displayTitle}</span>

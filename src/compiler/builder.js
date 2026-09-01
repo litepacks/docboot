@@ -194,7 +194,7 @@ export class SiteBuilder {
         for (const child of uniqueChildren) {
           const desc = child.frontmatter?.description || (child.plainText ? child.plainText.slice(0, 140).replace(/^[#\s]+/, '').trim() + '...' : '');
           hubCardsHtml += `
-    <a href="${child.route}" class="group relative flex flex-col p-5 rounded-2xl border border-border/80 bg-card-bg/60 hover:bg-card-bg hover:border-accent/40 shadow-sm hover:shadow-md transition-all">
+    <a href="${child.route}" class="group relative flex flex-col p-5 rounded-lg border border-border bg-card-bg/60 hover:bg-card-bg hover:border-accent/50 shadow-2xs hover:shadow-md transition-all">
       <div class="flex items-center justify-between">
         <h3 class="text-base font-semibold text-foreground group-hover:text-accent transition-colors flex items-center gap-2">
           ${escapeHtml(child.title)}

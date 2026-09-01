@@ -259,7 +259,7 @@ function renderCallout(type, args, body) {
   const innerHtml = marked.parse(body.trim());
 
   return unindent(`
-<div class="docboot-callout my-6 rounded-r-xl p-4 text-sm leading-relaxed ${cfg.containerClass} shadow-xs">
+<div class="docboot-callout my-6 rounded-r-lg p-4 text-sm leading-relaxed ${cfg.containerClass} shadow-2xs">
 <div class="flex items-center gap-2 mb-1.5 ${cfg.titleClass}">
 ${cfg.icon}
 <span class="font-semibold">${escapeHtml(displayTitle)}</span>
@@ -276,7 +276,7 @@ function renderDetails(args, body) {
   const innerHtml = marked.parse(body.trim());
 
   return unindent(`
-<details class="docboot-details group my-6 rounded-xl border border-border/80 bg-card-bg/50 p-4 transition-all duration-200">
+<details class="docboot-details group my-6 rounded-lg border border-border bg-card-bg/50 p-4 transition-all duration-200">
 <summary class="cursor-pointer font-semibold text-foreground flex items-center justify-between select-none list-none text-sm group-hover:text-accent transition-colors">
 <span class="flex items-center gap-2">
 <svg class="w-4 h-4 text-muted-foreground group-hover:text-accent transition-transform duration-200 group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -307,7 +307,7 @@ function renderTabs(args, body) {
   }
 
   if (tabs.length === 0) {
-    return unindent(`<div class="docboot-tabs my-6 p-4 rounded-xl border border-border bg-card-bg text-sm">${marked.parse(body)}</div>`);
+    return unindent(`<div class="docboot-tabs my-6 p-4 rounded-lg border border-border bg-card-bg text-sm">${marked.parse(body)}</div>`);
   }
 
   const tabId = 'tabs-' + Math.random().toString(36).substring(2, 9);
@@ -323,7 +323,7 @@ function renderTabs(args, body) {
     const hiddenClass = isFirst ? '' : 'hidden';
 
     tabButtons += `
-<button type="button" role="tab" aria-selected="${isFirst ? 'true' : 'false'}" tabindex="${isFirst ? '0' : '-1'}" aria-controls="${tabId}-panel-${index}" id="${tabId}-tab-${index}" class="docboot-tab-btn px-4 py-2 text-xs transition-all border-b-2 -mb-px rounded-t-lg select-none ${activeClass}" data-tab-index="${index}" data-tab-label="${escapeHtml(tab.label)}">
+<button type="button" role="tab" aria-selected="${isFirst ? 'true' : 'false'}" tabindex="${isFirst ? '0' : '-1'}" aria-controls="${tabId}-panel-${index}" id="${tabId}-tab-${index}" class="docboot-tab-btn px-4 py-2 text-xs transition-all border-b-2 -mb-px rounded-t-md select-none ${activeClass}" data-tab-index="${index}" data-tab-label="${escapeHtml(tab.label)}">
 ${escapeHtml(tab.label)}
 </button>`;
 
@@ -337,8 +337,8 @@ ${parsedContent}
   });
 
   return unindent(`
-<div class="docboot-tabs not-prose my-6 rounded-xl border border-border/80 bg-card-bg/60 shadow-xs overflow-hidden"${group}>
-<div class="docboot-tab-list flex border-b border-border/60 bg-muted/30 px-2 pt-2 gap-1 overflow-x-auto" role="tablist" aria-label="Tabs">
+<div class="docboot-tabs not-prose my-6 rounded-lg border border-border bg-card-bg/60 shadow-2xs overflow-hidden"${group}>
+<div class="docboot-tab-list flex border-b border-border bg-muted/30 px-2 pt-2 gap-1 overflow-x-auto" role="tablist" aria-label="Tabs">
 ${tabButtons}
 </div>
 <div class="docboot-tab-panels">
@@ -388,7 +388,7 @@ ${renderedCode}
   });
 
   return unindent(`
-<div class="docboot-tabs docboot-code-group not-prose my-6 rounded-xl border border-border/80 bg-[#0d1117] shadow-lg shadow-black/10 overflow-hidden">
+<div class="docboot-tabs docboot-code-group not-prose my-6 rounded-lg border border-border/90 bg-[#0d1117] shadow-md shadow-black/10 overflow-hidden">
 <div class="docboot-tab-list flex border-b border-[#21262d] bg-[#161b22] px-3 pt-2 gap-1 overflow-x-auto" role="tablist">
 <div class="flex items-center gap-1.5 mr-2 self-center">
 <span class="w-2.5 h-2.5 rounded-full bg-[#ff5f56]/80 inline-block"></span>
@@ -433,7 +433,7 @@ function renderEmbed(args, body, config = {}) {
 
   if (!src) {
     return unindent(`
-<div class="my-6 p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-mono">
+<div class="my-6 p-4 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-mono">
 ⚠ Missing <code>src</code> in embed directive.
 </div>`);
   }
@@ -457,7 +457,7 @@ function renderEmbed(args, body, config = {}) {
     parsedUrl = new URL(src);
   } catch (err) {
     return unindent(`
-<div class="my-6 p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-mono">
+<div class="my-6 p-4 rounded-lg border border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-mono">
 ✗ Invalid embed URL: <code>${escapeHtml(src)}</code>
 </div>`);
   }
@@ -467,7 +467,7 @@ function renderEmbed(args, body, config = {}) {
 
   if (!isAllowed) {
     return unindent(`
-<div class="my-6 p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-mono">
+<div class="my-6 p-4 rounded-lg border border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-mono">
 ✗ Blocked embed domain: <code>${escapeHtml(hostname)}</code> (Not in allowedDomains list)
 </div>`);
   }
@@ -496,7 +496,7 @@ function renderEmbed(args, body, config = {}) {
     : `style="aspect-ratio: ${ratio}; width: 100%;"`;
 
   return unindent(`
-<div class="docboot-embed not-prose my-6 rounded-2xl border border-border/80 bg-card-bg/50 shadow-sm overflow-hidden w-full">
+<div class="docboot-embed not-prose my-6 rounded-lg border border-border bg-card-bg/50 shadow-2xs overflow-hidden w-full">
 <iframe
 src="${escapeHtml(embedUrl)}"
 title="${escapeHtml(title)}"
@@ -522,7 +522,7 @@ function renderExplicitImage(args, body) {
   const align = data.align || args.align || 'center';
 
   if (!src) {
-    return unindent(`<div class="my-6 p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-600 text-xs font-mono">⚠ Missing <code>src</code> in image directive.</div>`);
+    return unindent(`<div class="my-6 p-4 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-600 text-xs font-mono">⚠ Missing <code>src</code> in image directive.</div>`);
   }
 
   const widthStyle = width ? `max-width: ${width};` : '';
@@ -531,13 +531,13 @@ function renderExplicitImage(args, body) {
 
   return unindent(`
 <figure class="docboot-figure not-prose my-8 ${alignClass}">
-<div class="inline-block relative overflow-hidden rounded-2xl border border-border/80 bg-card-bg/40 shadow-sm group">
+<div class="inline-block relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs group">
 <img
 src="${escapeHtml(src)}"
 alt="${escapeHtml(alt)}"
 loading="lazy"
 decoding="async"
-class="block max-w-full h-auto rounded-2xl cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]"
+class="block max-w-full h-auto rounded-lg cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]"
 style="${widthStyle}"
 ${lightboxAttr}
 />
@@ -569,7 +569,7 @@ function renderGallery(args, body) {
   }
 
   if (items.length === 0) {
-    return unindent(`<div class="my-6 p-4 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-600 text-xs font-mono">⚠ Empty gallery directive.</div>`);
+    return unindent(`<div class="my-6 p-4 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-600 text-xs font-mono">⚠ Empty gallery directive.</div>`);
   }
 
   const galleryId = 'gallery-' + Math.random().toString(36).substring(2, 9);
@@ -581,7 +581,7 @@ function renderGallery(args, body) {
     const caption = item.caption || '';
 
     cardsHtml += `
-<figure class="group relative overflow-hidden rounded-2xl border border-border/80 bg-card-bg/40 shadow-xs hover:border-accent/40 hover:shadow-md transition-all">
+<figure class="group relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs hover:border-accent/50 hover:shadow-md transition-all">
 <div class="overflow-hidden aspect-video sm:aspect-square bg-muted/20 flex items-center justify-center">
 <img
 src="${escapeHtml(src)}"
