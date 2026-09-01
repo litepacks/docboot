@@ -259,4 +259,33 @@ test('Sidebar Hierarchy: Desktop and mobile sidebars have distinct unique IDs an
   assert.ok(html.includes('docboot-sidebar-group-toggle-title'));
 });
 
+test('Mobile Drawer & Breadcrumbs: Layout renders drawer backdrop, mobile toggle, and scrollable breadcrumbs', () => {
+  const page = {
+    title: 'Getting Started',
+    route: '/guide/getting-started',
+    relativePath: 'guide/getting-started.md',
+    html: '<h1>Getting Started</h1>'
+  };
+
+  const breadcrumbs = [
+    { title: 'Guide', route: '/guide', isCurrent: false },
+    { title: 'Getting Started', route: '/guide/getting-started', isCurrent: true }
+  ];
+
+  const html = renderLayout({
+    page,
+    pages: [page],
+    breadcrumbs,
+    sidebar: [{ title: 'Guide', items: [{ title: 'Getting Started', route: '/guide/getting-started' }] }],
+    config: { title: 'Test Docs' }
+  });
+
+  assert.ok(html.includes('id="docboot-mobile-toggle"'));
+  assert.ok(html.includes('id="docboot-mobile-drawer"'));
+  assert.ok(html.includes('id="docboot-mobile-backdrop"'));
+  assert.ok(html.includes('docboot-breadcrumbs'));
+  assert.ok(html.includes('overflow-x-auto'));
+  assert.ok(html.includes('whitespace-nowrap'));
+});
+
 

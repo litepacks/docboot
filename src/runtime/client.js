@@ -422,37 +422,123 @@
     };
   }
 
-  // --- 4. Mobile Navigation Drawer ---
+  // --- 4. Mobile Navigation Drawer & Touch Swipe Gestures ---
   function initMobileDrawer() {
     var toggleBtn = document.getElementById('docboot-mobile-toggle') || document.getElementById('euix-mobile-toggle');
     var drawer = document.getElementById('docboot-mobile-drawer') || document.getElementById('euix-mobile-drawer');
     var backdrop = document.getElementById('docboot-mobile-backdrop') || document.getElementById('euix-mobile-backdrop');
     var closeBtn = document.getElementById('docboot-mobile-close') || document.getElementById('euix-mobile-close');
 
-    if (!toggleBtn || !drawer || !backdrop) return;
+    if (!drawer) return;
+
+    function isDrawerOpen() {
+      return !drawer.classList.contains('-translate-x-full');
+    }
 
     function openDrawer() {
-      backdrop.classList.remove('hidden');
+      if (backdrop) backdrop.classList.remove('hidden');
       drawer.classList.remove('-translate-x-full');
       drawer.classList.add('translate-x-0');
       document.body.style.overflow = 'hidden';
     }
 
     function closeDrawer() {
+      if (!isDrawerOpen()) return;
       drawer.classList.remove('translate-x-0');
       drawer.classList.add('-translate-x-full');
-      backdrop.classList.add('hidden');
+      if (backdrop) backdrop.classList.add('hidden');
       document.body.style.overflow = '';
     }
 
-    toggleBtn.addEventListener('click', openDrawer);
-    if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
-    backdrop.addEventListener('click', closeDrawer);
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (isDrawerOpen()) {
+          closeDrawer();
+        } else {
+          openDrawer();
+        }
+      });
+    }
 
-    // Close on navigation click
-    drawer.querySelectorAll('a').forEach(function(link) {
-      link.addEventListener('click', closeDrawer);
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeDrawer();
+      });
+    }
+
+    if (backdrop) {
+      backdrop.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeDrawer();
+      });
+    }
+
+    // 1. Close drawer when clicking outside (content area, header, etc.) or on navigation links
+    document.addEventListener('click', function(e) {
+      if (!isDrawerOpen()) return;
+      if (drawer.contains(e.target)) {
+        var link = e.target.closest('a');
+        if (link && !link.classList.contains('docboot-sidebar-group-toggle-title')) {
+          closeDrawer();
+        }
+        return;
+      }
+      if (toggleBtn && toggleBtn.contains(e.target)) return;
+      closeDrawer();
     });
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && isDrawerOpen()) {
+        closeDrawer();
+      }
+    });
+
+    // Auto-close on resize to desktop breakpoint (md: 768px)
+    window.addEventListener('resize', function() {
+      if (window.innerWidth >= 768 && isDrawerOpen()) {
+        closeDrawer();
+      }
+    });
+
+    // 2. Mobile Edge Swipe Gestures (Swipe right from edge to open, swipe left to close)
+    var touchStartX = 0;
+    var touchStartY = 0;
+    var touchStartTime = 0;
+    var isEdgeSwipe = false;
+
+    document.addEventListener('touchstart', function(e) {
+      if (e.touches.length !== 1) return;
+      var touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      touchStartTime = Date.now();
+      // Edge swipe triggers when touch begins within 45px of screen's left edge
+      isEdgeSwipe = touchStartX <= 45;
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(e) {
+      if (e.changedTouches.length !== 1) return;
+      var touch = e.changedTouches[0];
+      var deltaX = touch.clientX - touchStartX;
+      var deltaY = touch.clientY - touchStartY;
+      var elapsed = Date.now() - touchStartTime;
+
+      if (elapsed > 600) return;
+      if (Math.abs(deltaX) < 40 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.25) return;
+
+      if (!isDrawerOpen()) {
+        if (isEdgeSwipe && deltaX > 40) {
+          openDrawer();
+        }
+      } else {
+        if (deltaX < -40) {
+          closeDrawer();
+        }
+      }
+    }, { passive: true });
   }
 
   // --- 5. Lazy-Loaded Client-Side Search (Cmd+K / MiniSearch) ---
@@ -1280,8 +1366,10 @@
       var drawer = document.getElementById('docboot-mobile-drawer') || document.getElementById('euix-mobile-drawer');
       var backdrop = document.getElementById('docboot-mobile-backdrop') || document.getElementById('euix-mobile-backdrop');
       if (drawer && !drawer.classList.contains('-translate-x-full')) {
+        drawer.classList.remove('translate-x-0');
         drawer.classList.add('-translate-x-full');
         if (backdrop) backdrop.classList.add('hidden');
+        document.body.style.overflow = '';
       }
 
       // Ensure active sidebar branch is expanded and in view
