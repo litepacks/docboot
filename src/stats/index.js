@@ -61,6 +61,15 @@ export class StatsCollector {
     }
 
     const cacheMetrics = builder.cache.getMetrics();
+    const imageStats = buildResult.imageStats || {
+      sources: totalImages,
+      variants: 0,
+      originalBytes: 0,
+      optimizedBytes: 0,
+      savedBytes: 0,
+      savedPercent: 0,
+      formats: {}
+    };
 
     return {
       pageCount: pageCount || buildResult.pageCount,
@@ -68,12 +77,22 @@ export class StatsCollector {
       totalHeadings,
       totalCodeBlocks,
       totalInternalLinks,
-      totalImages,
+      totalImages: imageStats.sources || totalImages,
       buildElapsedMs,
       cssSizeKb: (cssSize / 1024).toFixed(1),
       jsSizeKb: (jsSize / 1024).toFixed(1),
       searchIndexSizeKb: (searchIndexSize / 1024).toFixed(1),
-      cache: cacheMetrics
+      cache: cacheMetrics,
+      images: {
+        sources: imageStats.sources || totalImages,
+        variants: imageStats.variants,
+        originalBytes: imageStats.originalBytes,
+        optimizedBytes: imageStats.optimizedBytes,
+        originalSizeMb: (imageStats.originalBytes / (1024 * 1024)).toFixed(2),
+        optimizedSizeMb: (imageStats.optimizedBytes / (1024 * 1024)).toFixed(2),
+        savedPercent: imageStats.savedPercent,
+        formats: imageStats.formats
+      }
     };
   }
 }

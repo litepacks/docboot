@@ -21,6 +21,7 @@ import { withBase } from '../config/index.js';
 import { AssetGenerator } from '../assets/generator.js';
 import { GitMetadataResolver } from '../metadata/git.js';
 import { parseGitHubRemote } from '../setup/github/detect.js';
+import { ImageProcessor } from '../images/processor.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +33,7 @@ export class SiteBuilder {
     this.noCache = Boolean(options.noCache || config.noCache);
     this.cache = new CacheManager(config.cacheDir, { disabled: this.noCache });
     this.gitResolver = new GitMetadataResolver(config.rootDir);
+    this.imageProcessor = new ImageProcessor(config, { logger: this.logger });
   }
 
   computeConfigHash() {
@@ -43,7 +45,8 @@ export class SiteBuilder {
       theme: this.config.theme,
       sidebar: this.config.sidebar,
       search: this.config.search,
-      embeds: this.config.embeds
+      embeds: this.config.embeds,
+      images: this.config.images
     });
   }
 
@@ -387,6 +390,27 @@ export class SiteBuilder {
       copyDirectoryRecursive(publicDir, this.config.outDir);
     }
 
+    // 6.5 Process & optimize all referenced images in parallel
+    const imageTasks = [];
+    for (const page of pages) {
+      if (Array.isArray(page.referencedAssets)) {
+        for (const assetSrc of page.referencedAssets) {
+          imageTasks.push(this.imageProcessor.process(assetSrc, { relativePath: page.relativePath }));
+        }
+      }
+      const rawMatches = (page.rawContent || '').matchAll(/(?:src|data-lightbox-src)=["']([^"'\s,]+)/g);
+      for (const m of rawMatches) {
+        const src = m[1];
+        if (src && !src.startsWith('http') && !src.startsWith('data:') && !src.startsWith('#')) {
+          imageTasks.push(this.imageProcessor.process(src, { relativePath: page.relativePath }));
+        }
+      }
+    }
+    if (this.config.logo && !this.config.logo.startsWith('http')) {
+      imageTasks.push(this.imageProcessor.process(this.config.logo));
+    }
+    await Promise.all(imageTasks);
+
     // 7. Write all pre-rendered HTML files in parallel
     await Promise.all(
       renderedPages.map(async ({ page, fullHtml }) => {
@@ -423,16 +447,21 @@ export class SiteBuilder {
     }
 
     // Save incremental cache
+    if (this.imageProcessor.processedRecords.size > 0) {
+      this.cache.manifest.images = Object.fromEntries(this.imageProcessor.processedRecords);
+    }
     this.cache.save();
 
     const elapsedMs = Math.round(performance.now() - startTime);
     const cacheMetrics = this.cache.getMetrics();
+    const imageStats = this.imageProcessor.getStats();
 
     return {
       pageCount: renderedPages.length,
       elapsedMs,
       outDir: this.config.outDir,
-      cacheMetrics
+      cacheMetrics,
+      imageStats
     };
   }
 }

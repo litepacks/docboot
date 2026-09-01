@@ -1,7 +1,14 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import yaml from 'yaml';
 import { marked } from 'marked';
 import { renderCodeBlock } from './codeblock.js';
 import { escapeHtml } from './highlighter.js';
+import { inspectBuffer } from '../images/inspect.js';
+import { renderPicture } from '../images/renderer.js';
+import { computeTargetWidths } from '../images/processor.js';
+import { hashString } from '../cache/hasher.js';
+import { withBase } from '../config/index.js';
 
 const CALLOUT_CONFIGS = {
   note: {
@@ -100,12 +107,12 @@ function transformDirectiveBlock(name, rawArgs, body, config) {
 
   // 6. Explicit Image
   if (type === 'image') {
-    return renderExplicitImage(args, body);
+    return renderExplicitImage(args, body, config);
   }
 
   // 7. Image Gallery
   if (type === 'gallery') {
-    return renderGallery(args, body);
+    return renderGallery(args, body, config);
   }
 
   // 8. Custom Text Size Container (::: text-sm, ::: text-lg, ::: text-xl, ::: text-xs, ::: lead)
@@ -512,24 +519,232 @@ ${styleAttr}
 `);
 }
 
-function renderExplicitImage(args, body) {
+function renderExplicitImage(args, body, config = {}) {
   const data = parseYamlOrProps(body);
   const src = data.src || args.src || '';
   const alt = data.alt || args.alt || '';
   const caption = data.caption || args.caption || '';
-  const zoom = data.zoom !== false && args.zoom !== 'false';
-  const width = data.width || args.width;
+  const zoom = data.zoom !== false && args.zoom !== 'false' && data.lightbox !== false && args.lightbox !== 'false';
+  const rawWidth = data.width || args.width;
+  const quality = data.quality ? Number(data.quality) : (config.images?.quality || 82);
+  const loading = data.loading || args.loading || 'lazy';
+  const fetchpriority = data.fetchpriority || args.fetchpriority || null;
+  const optimize = data.optimize !== false && data.optimize !== 'false' && args.optimize !== 'false' && config.images?.optimize !== false;
   const align = data.align || args.align || 'center';
+  const base = config.base || '/';
 
   if (!src) {
     return unindent(`<div class="my-6 p-4 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-600 text-xs font-mono">⚠ Missing <code>src</code> in image directive.</div>`);
   }
 
-  const widthStyle = width ? `max-width: ${width};` : '';
-  const alignClass = align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center mx-auto';
-  const lightboxAttr = zoom ? `data-docboot-lightbox="true" data-lightbox-src="${escapeHtml(src)}" data-lightbox-alt="${escapeHtml(alt)}" data-lightbox-caption="${escapeHtml(caption)}"` : '';
+  const isExternal = src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//') || src.startsWith('data:') || src.startsWith('#');
+  const widthStyle = rawWidth ? (String(rawWidth).match(/^[0-9]+$/) ? `max-width: ${rawWidth}px;` : `max-width: ${rawWidth};`) : '';
+  const alignClass = align === 'left' ? 'text-left' : (align === 'right' ? 'text-right' : 'text-center mx-auto');
 
-  return unindent(`
+  if (isExternal) {
+    const lightboxAttr = zoom ? ` data-docboot-lightbox="true" data-lightbox-src="${escapeHtml(src)}" data-lightbox-alt="${escapeHtml(alt)}" data-lightbox-caption="${escapeHtml(caption)}"` : '';
+    const isEager = loading === 'eager';
+    const loadingAttr = isEager ? 'loading="eager"' : 'loading="lazy"';
+    const priorityAttr = isEager ? ' fetchpriority="high"' : (fetchpriority ? ` fetchpriority="${fetchpriority}"` : '');
+    const cursorClass = zoom ? 'cursor-zoom-in ' : '';
+
+    return unindent(`
+<figure class="docboot-figure not-prose my-8 ${alignClass}">
+<div class="inline-block relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs group">
+<img
+src="${escapeHtml(src)}"
+alt="${escapeHtml(alt)}"
+${loadingAttr}
+decoding="async"${priorityAttr}
+class="block max-w-full h-auto rounded-lg ${cursorClass}transition-transform duration-300 group-hover:scale-[1.01]"
+style="${widthStyle}"${lightboxAttr}
+/>
+</div>
+${caption ? `<figcaption class="mt-2.5 text-xs text-muted-foreground font-medium tracking-tight">${escapeHtml(caption)}</figcaption>` : ''}
+</figure>
+`);
+  }
+
+  // Local image resolution
+  const rootDir = config.rootDir || process.cwd();
+  const docsDir = config.docsDir || path.resolve(rootDir, 'docs');
+  const currentRelativePath = config.relativePath || '';
+  const cleanSrc = src.split('?')[0].split('#')[0];
+
+  let diskPath = null;
+  if (currentRelativePath) {
+    const mdDir = path.dirname(path.join(docsDir, currentRelativePath));
+    const p1 = path.resolve(mdDir, cleanSrc);
+    if (fs.existsSync(p1) && fs.statSync(p1).isFile()) diskPath = p1;
+  }
+  if (!diskPath) {
+    const p2 = path.resolve(docsDir, cleanSrc.replace(/^\/+/, ''));
+    if (fs.existsSync(p2) && fs.statSync(p2).isFile()) diskPath = p2;
+  }
+  if (!diskPath) {
+    const p3 = path.resolve(rootDir, 'public', cleanSrc.replace(/^\/+/, ''));
+    if (fs.existsSync(p3) && fs.statSync(p3).isFile()) diskPath = p3;
+  }
+  if (!diskPath) {
+    const p4 = path.resolve(rootDir, cleanSrc.replace(/^\/+/, ''));
+    if (fs.existsSync(p4) && fs.statSync(p4).isFile()) diskPath = p4;
+  }
+
+  if (!diskPath || !fs.existsSync(diskPath)) {
+    const lightboxAttr = zoom ? ` data-docboot-lightbox="true" data-lightbox-src="${escapeHtml(src)}" data-lightbox-alt="${escapeHtml(alt)}" data-lightbox-caption="${escapeHtml(caption)}"` : '';
+    const cursorClass = zoom ? 'cursor-zoom-in ' : '';
+    return unindent(`
+<figure class="docboot-figure not-prose my-8 ${alignClass}">
+<div class="inline-block relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs group">
+<img
+src="${escapeHtml(src)}"
+alt="${escapeHtml(alt)}"
+loading="lazy"
+decoding="async"
+class="block max-w-full h-auto rounded-lg ${cursorClass}transition-transform duration-300 group-hover:scale-[1.01]"
+style="${widthStyle}"${lightboxAttr}
+/>
+</div>
+${caption ? `<figcaption class="mt-2.5 text-xs text-muted-foreground font-medium tracking-tight">${escapeHtml(caption)}</figcaption>` : ''}
+</figure>
+`);
+  }
+
+  try {
+    const buffer = fs.readFileSync(diskPath);
+    const meta = inspectBuffer(buffer);
+    const parsedFile = path.parse(diskPath);
+    const baseName = (parsedFile.name || 'image').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'image';
+    const fileHash = hashString(buffer.toString('binary')).slice(0, 8);
+
+    if (meta.format === 'svg') {
+      const svgUrl = withBase(`/assets/images/${baseName}.${fileHash}.svg`, base);
+      const widthAttr = meta.width ? ` width="${meta.width}"` : '';
+      const heightAttr = meta.height ? ` height="${meta.height}"` : '';
+      const lightboxAttr = zoom ? ` data-docboot-lightbox="true" data-lightbox-src="${svgUrl}" data-lightbox-alt="${escapeHtml(alt)}" data-lightbox-caption="${escapeHtml(caption)}"` : '';
+      const cursorClass = zoom ? 'cursor-zoom-in ' : '';
+
+      return unindent(`
+<figure class="docboot-figure not-prose my-8 ${alignClass}">
+<div class="inline-block relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs group">
+<img
+src="${svgUrl}"
+alt="${escapeHtml(alt)}"${widthAttr}${heightAttr}
+loading="${loading === 'eager' ? 'eager' : 'lazy'}"
+decoding="async"${loading === 'eager' ? ' fetchpriority="high"' : ''}
+class="block max-w-full h-auto rounded-lg ${cursorClass}transition-transform duration-300 group-hover:scale-[1.01]"
+style="${widthStyle}"${lightboxAttr}
+/>
+</div>
+${caption ? `<figcaption class="mt-2.5 text-xs text-muted-foreground font-medium tracking-tight">${escapeHtml(caption)}</figcaption>` : ''}
+</figure>
+`);
+    }
+
+    if (meta.format === 'gif' && meta.isAnimated) {
+      const gifUrl = withBase(`/assets/images/${baseName}.${fileHash}.gif`, base);
+      const widthAttr = meta.width ? ` width="${meta.width}"` : '';
+      const heightAttr = meta.height ? ` height="${meta.height}"` : '';
+      const lightboxAttr = zoom ? ` data-docboot-lightbox="true" data-lightbox-src="${gifUrl}" data-lightbox-alt="${escapeHtml(alt)}" data-lightbox-caption="${escapeHtml(caption)}"` : '';
+      const cursorClass = zoom ? 'cursor-zoom-in ' : '';
+
+      return unindent(`
+<figure class="docboot-figure not-prose my-8 ${alignClass}">
+<div class="inline-block relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs group">
+<img
+src="${gifUrl}"
+alt="${escapeHtml(alt)}"${widthAttr}${heightAttr}
+loading="${loading === 'eager' ? 'eager' : 'lazy'}"
+decoding="async"${loading === 'eager' ? ' fetchpriority="high"' : ''}
+class="block max-w-full h-auto rounded-lg ${cursorClass}transition-transform duration-300 group-hover:scale-[1.01]"
+style="${widthStyle}"${lightboxAttr}
+/>
+</div>
+${caption ? `<figcaption class="mt-2.5 text-xs text-muted-foreground font-medium tracking-tight">${escapeHtml(caption)}</figcaption>` : ''}
+</figure>
+`);
+    }
+
+    if (optimize && (meta.format === 'png' || meta.format === 'jpeg' || meta.format === 'webp' || meta.format === 'avif') && meta.width) {
+      const configuredWidths = config.images?.widths || [480, 768, 1280, 1920];
+      const targetWidths = computeTargetWidths(meta.width, configuredWidths);
+      const configuredFormats = config.images?.formats || ['avif', 'webp'];
+      const targetFormats = Array.from(new Set([...configuredFormats, 'webp']));
+
+      const variants = [];
+      for (const fmt of targetFormats) {
+        for (const w of targetWidths) {
+          const targetHeight = meta.height ? Math.round((w / meta.width) * meta.height) : null;
+          const variantName = `${baseName}.${fileHash}.${w}.${fmt}`;
+          variants.push({
+            width: w,
+            height: targetHeight,
+            format: fmt,
+            url: `/assets/images/${variantName}`
+          });
+        }
+      }
+
+      const webpVariants = variants.filter(v => v.format === 'webp');
+      const largestWebp = webpVariants[webpVariants.length - 1] || variants[variants.length - 1];
+      const displayVariant = webpVariants.find(v => v.width >= 768) || largestWebp;
+
+      const imageRecord = {
+        src: displayVariant.url,
+        displaySrc: displayVariant.url,
+        lightboxSrc: largestWebp.url,
+        width: meta.width,
+        height: meta.height,
+        format: meta.format,
+        variants,
+        optimize: true
+      };
+
+      const picHtml = renderPicture(imageRecord, {
+        alt,
+        title: caption,
+        caption,
+        base,
+        lightbox: zoom,
+        loading,
+        fetchpriority,
+        style: widthStyle
+      });
+
+      return unindent(`
+<figure class="docboot-figure not-prose my-8 ${alignClass}">
+<div class="inline-block relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs group">
+${picHtml}
+</div>
+${caption ? `<figcaption class="mt-2.5 text-xs text-muted-foreground font-medium tracking-tight">${escapeHtml(caption)}</figcaption>` : ''}
+</figure>
+`);
+    }
+
+    // Passthrough
+    const widthAttr = meta.width ? ` width="${meta.width}"` : '';
+    const heightAttr = meta.height ? ` height="${meta.height}"` : '';
+    const lightboxAttr = zoom ? ` data-docboot-lightbox="true" data-lightbox-src="${escapeHtml(src)}" data-lightbox-alt="${escapeHtml(alt)}" data-lightbox-caption="${escapeHtml(caption)}"` : '';
+    const cursorClass = zoom ? 'cursor-zoom-in ' : '';
+
+    return unindent(`
+<figure class="docboot-figure not-prose my-8 ${alignClass}">
+<div class="inline-block relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs group">
+<img
+src="${escapeHtml(src)}"
+alt="${escapeHtml(alt)}"${widthAttr}${heightAttr}
+loading="${loading === 'eager' ? 'eager' : 'lazy'}"
+decoding="async"${loading === 'eager' ? ' fetchpriority="high"' : ''}
+class="block max-w-full h-auto rounded-lg ${cursorClass}transition-transform duration-300 group-hover:scale-[1.01]"
+style="${widthStyle}"${lightboxAttr}
+/>
+</div>
+${caption ? `<figcaption class="mt-2.5 text-xs text-muted-foreground font-medium tracking-tight">${escapeHtml(caption)}</figcaption>` : ''}
+</figure>
+`);
+  } catch (_) {
+    const lightboxAttr = zoom ? ` data-docboot-lightbox="true" data-lightbox-src="${escapeHtml(src)}" data-lightbox-alt="${escapeHtml(alt)}" data-lightbox-caption="${escapeHtml(caption)}"` : '';
+    return unindent(`
 <figure class="docboot-figure not-prose my-8 ${alignClass}">
 <div class="inline-block relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs group">
 <img
@@ -538,16 +753,16 @@ alt="${escapeHtml(alt)}"
 loading="lazy"
 decoding="async"
 class="block max-w-full h-auto rounded-lg cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]"
-style="${widthStyle}"
-${lightboxAttr}
+style="${widthStyle}"${lightboxAttr}
 />
 </div>
 ${caption ? `<figcaption class="mt-2.5 text-xs text-muted-foreground font-medium tracking-tight">${escapeHtml(caption)}</figcaption>` : ''}
 </figure>
 `);
+  }
 }
 
-function renderGallery(args, body) {
+function renderGallery(args, body, config = {}) {
   let items = [];
 
   try {
@@ -573,24 +788,80 @@ function renderGallery(args, body) {
   }
 
   const galleryId = 'gallery-' + Math.random().toString(36).substring(2, 9);
+  const base = config.base || '/';
+  const rootDir = config.rootDir || process.cwd();
+  const docsDir = config.docsDir || path.resolve(rootDir, 'docs');
+  const currentRelativePath = config.relativePath || '';
 
   let cardsHtml = '';
   items.forEach((item, index) => {
     const src = item.src || (typeof item === 'string' ? item : '');
     const alt = item.alt || '';
     const caption = item.caption || '';
+    const isExternal = src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//') || src.startsWith('data:') || src.startsWith('#');
+
+    let displaySrc = src;
+    let highResSrc = src;
+
+    if (!isExternal) {
+      const cleanSrc = src.split('?')[0].split('#')[0];
+      let diskPath = null;
+      if (currentRelativePath) {
+        const mdDir = path.dirname(path.join(docsDir, currentRelativePath));
+        const p1 = path.resolve(mdDir, cleanSrc);
+        if (fs.existsSync(p1) && fs.statSync(p1).isFile()) diskPath = p1;
+      }
+      if (!diskPath) {
+        const p2 = path.resolve(docsDir, cleanSrc.replace(/^\/+/, ''));
+        if (fs.existsSync(p2) && fs.statSync(p2).isFile()) diskPath = p2;
+      }
+      if (!diskPath) {
+        const p3 = path.resolve(rootDir, 'public', cleanSrc.replace(/^\/+/, ''));
+        if (fs.existsSync(p3) && fs.statSync(p3).isFile()) diskPath = p3;
+      }
+      if (!diskPath) {
+        const p4 = path.resolve(rootDir, cleanSrc.replace(/^\/+/, ''));
+        if (fs.existsSync(p4) && fs.statSync(p4).isFile()) diskPath = p4;
+      }
+
+      if (diskPath && fs.existsSync(diskPath)) {
+        try {
+          const buffer = fs.readFileSync(diskPath);
+          const meta = inspectBuffer(buffer);
+          const parsedFile = path.parse(diskPath);
+          const baseName = (parsedFile.name || 'image').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'image';
+          const fileHash = hashString(buffer.toString('binary')).slice(0, 8);
+
+          if (meta.format === 'svg') {
+            displaySrc = withBase(`/assets/images/${baseName}.${fileHash}.svg`, base);
+            highResSrc = displaySrc;
+          } else if (meta.format === 'gif' && meta.isAnimated) {
+            displaySrc = withBase(`/assets/images/${baseName}.${fileHash}.gif`, base);
+            highResSrc = displaySrc;
+          } else if (meta.width) {
+            // Thumbnail variant for gallery card (e.g. 480w)
+            const targetWidths = computeTargetWidths(meta.width, config.images?.widths || [480, 768, 1280, 1920]);
+            const thumbWidth = targetWidths[0] || 480;
+            const fullWidth = targetWidths[targetWidths.length - 1] || meta.width;
+
+            displaySrc = withBase(`/assets/images/${baseName}.${fileHash}.${thumbWidth}.webp`, base);
+            highResSrc = withBase(`/assets/images/${baseName}.${fileHash}.${fullWidth}.webp`, base);
+          }
+        } catch (_) {}
+      }
+    }
 
     cardsHtml += `
 <figure class="group relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs hover:border-accent/50 hover:shadow-md transition-all">
 <div class="overflow-hidden aspect-video sm:aspect-square bg-muted/20 flex items-center justify-center">
 <img
-src="${escapeHtml(src)}"
+src="${escapeHtml(displaySrc)}"
 alt="${escapeHtml(alt)}"
 loading="lazy"
 decoding="async"
 class="w-full h-full object-cover cursor-zoom-in transition-transform duration-300 group-hover:scale-105"
 data-docboot-lightbox="true"
-data-lightbox-src="${escapeHtml(src)}"
+data-lightbox-src="${escapeHtml(highResSrc)}"
 data-lightbox-alt="${escapeHtml(alt)}"
 data-lightbox-caption="${escapeHtml(caption)}"
 data-gallery-id="${galleryId}"

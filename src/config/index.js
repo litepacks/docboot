@@ -77,6 +77,17 @@ export const DEFAULT_CONFIG = {
       'codepen.io'
     ]
   },
+  images: {
+    optimize: true,
+    preset: 'docs',
+    formats: ['avif', 'webp'],
+    widths: [480, 768, 1280, 1920],
+    quality: 82,
+    lazy: true,
+    svg: {
+      minify: true
+    }
+  },
   footer: {
     pageMeta: true,
     created: true,
@@ -250,6 +261,16 @@ export async function loadConfig(rootDir = process.cwd(), cliOverrides = {}) {
       ...DEFAULT_CONFIG.theme,
       ...(userConfig.theme || {}),
       ...(cliOverrides.theme || {})
+    },
+    images: {
+      ...DEFAULT_CONFIG.images,
+      ...(userConfig.images || {}),
+      ...(cliOverrides.images || {}),
+      svg: {
+        ...DEFAULT_CONFIG.images.svg,
+        ...(userConfig.images?.svg || {}),
+        ...(cliOverrides.images?.svg || {})
+      }
     },
     footer: {
       ...DEFAULT_CONFIG.footer,

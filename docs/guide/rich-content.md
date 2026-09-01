@@ -208,6 +208,7 @@ You can also group multiple images into responsive grid galleries:
 
 ## Next Steps
 
+- [Image Optimization](/guide/images) — Automatic responsive pictures, modern formats (AVIF/WebP), and galleries
 - [Mermaid Diagrams](/guide/diagrams) — Interactive flowcharts and architecture graphs
 - [Directives Reference](/reference/directives) — Complete directive syntax cheatsheet
 - [Docboot Doctor](/tooling/doctor) — Validating broken directives and missing images

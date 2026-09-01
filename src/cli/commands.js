@@ -136,6 +136,20 @@ export async function runCommand(flags) {
     console.log(`  ${pc.dim('JS runtime      ')} ${pc.cyan(stats.jsSizeKb + ' KB')}`);
     console.log(`  ${pc.dim('Search index    ')} ${pc.cyan(stats.searchIndexSizeKb + ' KB')}`);
 
+    if (stats.images && stats.images.sources > 0) {
+      console.log('');
+      console.log(pc.bold('  IMAGE OPTIMIZATION METRICS\n'));
+      console.log(`  ${pc.dim('Sources         ')} ${pc.bold(stats.images.sources)}`);
+      console.log(`  ${pc.dim('Variants        ')} ${pc.bold(stats.images.variants)}`);
+      if (stats.images.originalBytes > 0) {
+        console.log(`  ${pc.dim('Original size   ')} ${pc.dim(stats.images.originalSizeMb + ' MB')}`);
+        console.log(`  ${pc.dim('Optimized size  ')} ${pc.cyan(stats.images.optimizedSizeMb + ' MB')}`);
+        if (stats.images.savedPercent > 0) {
+          console.log(`  ${pc.dim('Saved           ')} ${pc.green(stats.images.savedPercent + '%')}`);
+        }
+      }
+    }
+
     if (stats.cache) {
       console.log('');
       console.log(pc.bold('  BUILD CACHE METRICS\n'));

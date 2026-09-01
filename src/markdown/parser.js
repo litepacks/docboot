@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { Marked } from 'marked';
 import { extractFrontmatter } from './frontmatter.js';
 import { processDirectives } from './directives.js';
@@ -5,6 +7,11 @@ import { renderCodeBlock } from './codeblock.js';
 import { TocCollector } from './toc.js';
 import { normalizeMarkdownLink } from './links.js';
 import { unescapeHtml, escapeHtml } from './highlighter.js';
+import { inspectBuffer } from '../images/inspect.js';
+import { renderPicture, wrapFigure } from '../images/renderer.js';
+import { computeTargetWidths } from '../images/processor.js';
+import { hashString } from '../cache/hasher.js';
+import { withBase } from '../config/index.js';
 
 export function isBadgeImage(href = '', alt = '', title = '') {
   const lower = (String(href) + ' ' + String(alt) + ' ' + String(title)).toLowerCase();
@@ -94,7 +101,7 @@ export function parseMarkdown(rawMarkdown, options = {}) {
 
     image({ href, title, text }) {
       referencedAssets.push(href);
-      const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//');
+      const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//') || href.startsWith('data:') || href.startsWith('#');
       const normalizedHref = isExternal ? href : normalizeMarkdownLink(href, currentRelativePath, base);
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
 
@@ -103,26 +110,120 @@ export function parseMarkdown(rawMarkdown, options = {}) {
         return `<img src="${normalizedHref}" alt="${escapeHtml(text || title || '')}" class="inline-block align-middle my-1 mr-1.5 h-[20px] max-h-[22px] w-auto max-w-full rounded-xs shadow-none border-0 select-none" loading="lazy" decoding="async"${titleAttr} />`;
       }
 
-      const captionHtml = title ? `<figcaption class="mt-2.5 text-xs text-muted-foreground font-medium">${escapeHtml(title)}</figcaption>` : '';
+      if (isExternal) {
+        const imgHtml = `<img src="${href}" alt="${escapeHtml(text || title || '')}" loading="lazy" decoding="async" class="block max-w-full h-auto rounded-lg cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]" data-docboot-lightbox="true" data-lightbox-src="${href}" data-lightbox-alt="${escapeHtml(text || title || '')}" data-lightbox-caption="${escapeHtml(title || '')}"${titleAttr} />`;
+        return wrapFigure(imgHtml, { caption: title, title });
+      }
 
-      return `
-<figure class="docboot-figure not-prose my-8 text-center">
-  <div class="inline-block relative overflow-hidden rounded-lg border border-border bg-card-bg/40 shadow-2xs group">
-    <img
-      src="${normalizedHref}"
-      alt="${escapeHtml(text || title || '')}"
-      loading="lazy"
-      decoding="async"
-      class="block max-w-full h-auto rounded-lg cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]"
-      data-docboot-lightbox="true"
-      data-lightbox-src="${normalizedHref}"
-      data-lightbox-alt="${escapeHtml(text || title || '')}"
-      data-lightbox-caption="${escapeHtml(title || '')}"
-      ${titleAttr}
-    />
-  </div>
-  ${captionHtml}
-</figure>`;
+      // Local image resolution & optimization
+      const config = options.config || {};
+      const rootDir = config.rootDir || process.cwd();
+      const docsDir = config.docsDir || path.resolve(rootDir, 'docs');
+      const cleanSrc = href.split('?')[0].split('#')[0];
+
+      let diskPath = null;
+      if (currentRelativePath) {
+        const mdDir = path.dirname(path.join(docsDir, currentRelativePath));
+        const p1 = path.resolve(mdDir, cleanSrc);
+        if (fs.existsSync(p1) && fs.statSync(p1).isFile()) diskPath = p1;
+      }
+      if (!diskPath) {
+        const p2 = path.resolve(docsDir, cleanSrc.replace(/^\/+/, ''));
+        if (fs.existsSync(p2) && fs.statSync(p2).isFile()) diskPath = p2;
+      }
+      if (!diskPath) {
+        const p3 = path.resolve(rootDir, 'public', cleanSrc.replace(/^\/+/, ''));
+        if (fs.existsSync(p3) && fs.statSync(p3).isFile()) diskPath = p3;
+      }
+      if (!diskPath) {
+        const p4 = path.resolve(rootDir, cleanSrc.replace(/^\/+/, ''));
+        if (fs.existsSync(p4) && fs.statSync(p4).isFile()) diskPath = p4;
+      }
+
+      if (!diskPath || !fs.existsSync(diskPath)) {
+        const fallbackImg = `<img src="${normalizedHref}" alt="${escapeHtml(text || title || '')}" loading="lazy" decoding="async" class="block max-w-full h-auto rounded-lg cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]" data-docboot-lightbox="true" data-lightbox-src="${normalizedHref}" data-lightbox-alt="${escapeHtml(text || title || '')}" data-lightbox-caption="${escapeHtml(title || '')}"${titleAttr} />`;
+        return wrapFigure(fallbackImg, { caption: title, title });
+      }
+
+      try {
+        const buffer = fs.readFileSync(diskPath);
+        const meta = inspectBuffer(buffer);
+        const parsedFile = path.parse(diskPath);
+        const baseName = (parsedFile.name || 'image').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'image';
+        const fileHash = hashString(buffer.toString('binary')).slice(0, 8);
+        const shouldOptimize = config.images?.optimize !== false;
+
+        if (meta.format === 'svg') {
+          const svgUrl = withBase(`/assets/images/${baseName}.${fileHash}.svg`, base);
+          const widthAttr = meta.width ? ` width="${meta.width}"` : '';
+          const heightAttr = meta.height ? ` height="${meta.height}"` : '';
+          const imgHtml = `<img src="${svgUrl}" alt="${escapeHtml(text || title || '')}"${widthAttr}${heightAttr} loading="lazy" decoding="async" class="block max-w-full h-auto rounded-lg cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]" data-docboot-lightbox="true" data-lightbox-src="${svgUrl}" data-lightbox-alt="${escapeHtml(text || title || '')}" data-lightbox-caption="${escapeHtml(title || '')}"${titleAttr} />`;
+          return wrapFigure(imgHtml, { caption: title, title });
+        }
+
+        if (meta.format === 'gif' && meta.isAnimated) {
+          const gifUrl = withBase(`/assets/images/${baseName}.${fileHash}.gif`, base);
+          const widthAttr = meta.width ? ` width="${meta.width}"` : '';
+          const heightAttr = meta.height ? ` height="${meta.height}"` : '';
+          const imgHtml = `<img src="${gifUrl}" alt="${escapeHtml(text || title || '')}"${widthAttr}${heightAttr} loading="lazy" decoding="async" class="block max-w-full h-auto rounded-lg cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]" data-docboot-lightbox="true" data-lightbox-src="${gifUrl}" data-lightbox-alt="${escapeHtml(text || title || '')}" data-lightbox-caption="${escapeHtml(title || '')}"${titleAttr} />`;
+          return wrapFigure(imgHtml, { caption: title, title });
+        }
+
+        if (shouldOptimize && (meta.format === 'png' || meta.format === 'jpeg' || meta.format === 'webp' || meta.format === 'avif') && meta.width) {
+          const configuredWidths = config.images?.widths || [480, 768, 1280, 1920];
+          const targetWidths = computeTargetWidths(meta.width, configuredWidths);
+          const configuredFormats = config.images?.formats || ['avif', 'webp'];
+          const targetFormats = Array.from(new Set([...configuredFormats, 'webp']));
+
+          const variants = [];
+          for (const fmt of targetFormats) {
+            for (const w of targetWidths) {
+              const targetHeight = meta.height ? Math.round((w / meta.width) * meta.height) : null;
+              const variantName = `${baseName}.${fileHash}.${w}.${fmt}`;
+              variants.push({
+                width: w,
+                height: targetHeight,
+                format: fmt,
+                url: `/assets/images/${variantName}`
+              });
+            }
+          }
+
+          const webpVariants = variants.filter(v => v.format === 'webp');
+          const largestWebp = webpVariants[webpVariants.length - 1] || variants[variants.length - 1];
+          const displayVariant = webpVariants.find(v => v.width >= 768) || largestWebp;
+
+          const imageRecord = {
+            src: displayVariant.url,
+            displaySrc: displayVariant.url,
+            lightboxSrc: largestWebp.url,
+            width: meta.width,
+            height: meta.height,
+            format: meta.format,
+            variants,
+            optimize: true
+          };
+
+          const picHtml = renderPicture(imageRecord, {
+            alt: text || title || '',
+            title,
+            caption: title,
+            base,
+            lightbox: true
+          });
+
+          return wrapFigure(picHtml, { caption: title, title });
+        }
+
+        // Passthrough with detected width and height
+        const widthAttr = meta.width ? ` width="${meta.width}"` : '';
+        const heightAttr = meta.height ? ` height="${meta.height}"` : '';
+        const imgHtml = `<img src="${normalizedHref}" alt="${escapeHtml(text || title || '')}"${widthAttr}${heightAttr} loading="lazy" decoding="async" class="block max-w-full h-auto rounded-lg cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]" data-docboot-lightbox="true" data-lightbox-src="${normalizedHref}" data-lightbox-alt="${escapeHtml(text || title || '')}" data-lightbox-caption="${escapeHtml(title || '')}"${titleAttr} />`;
+        return wrapFigure(imgHtml, { caption: title, title });
+      } catch (_) {
+        const fallbackImg = `<img src="${normalizedHref}" alt="${escapeHtml(text || title || '')}" loading="lazy" decoding="async" class="block max-w-full h-auto rounded-lg cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]" data-docboot-lightbox="true" data-lightbox-src="${normalizedHref}" data-lightbox-alt="${escapeHtml(text || title || '')}" data-lightbox-caption="${escapeHtml(title || '')}"${titleAttr} />`;
+        return wrapFigure(fallbackImg, { caption: title, title });
+      }
     },
 
     table({ header, rows }) {

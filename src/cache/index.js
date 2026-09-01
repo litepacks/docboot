@@ -20,6 +20,7 @@ export class CacheManager {
     this.pagesDir = path.join(this.cacheDir, 'pages');
     this.searchDir = path.join(this.cacheDir, 'search');
     this.artifactsDir = path.join(this.cacheDir, 'artifacts');
+    this.imagesDir = path.join(this.cacheDir, 'images');
     this.manifestFile = path.join(this.cacheDir, 'manifest.json');
     this.disabled = Boolean(options.disabled);
 
@@ -28,6 +29,7 @@ export class CacheManager {
       compilerVersion: COMPILER_VERSION,
       configHash: '',
       files: {},
+      images: {},
       createdAt: Date.now(),
       lastBuiltAt: Date.now()
     };
@@ -51,7 +53,10 @@ export class CacheManager {
         const raw = fs.readFileSync(this.manifestFile, 'utf-8');
         const parsed = JSON.parse(raw);
         if (parsed.version === CACHE_VERSION && parsed.compilerVersion === COMPILER_VERSION) {
-          this.manifest = parsed;
+          this.manifest = {
+            ...parsed,
+            images: parsed.images || {}
+          };
         } else {
           // Incompatible cache version -> discard and start fresh
           this.clear();
@@ -64,6 +69,7 @@ export class CacheManager {
         compilerVersion: COMPILER_VERSION,
         configHash: '',
         files: {},
+        images: {},
         createdAt: Date.now(),
         lastBuiltAt: Date.now()
       };
@@ -79,6 +85,7 @@ export class CacheManager {
       fs.mkdirSync(this.pagesDir, { recursive: true });
       fs.mkdirSync(this.searchDir, { recursive: true });
       fs.mkdirSync(this.artifactsDir, { recursive: true });
+      fs.mkdirSync(this.imagesDir, { recursive: true });
     } catch (err) {}
   }
 

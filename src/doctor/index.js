@@ -125,6 +125,8 @@ export class Doctor {
     const linkRegex = /<a\s+[^>]*href="([^"]+)"[^>]*>/gi;
     const imgRegex = /<img\s+[^>]*src="([^"]+)"[^>]*>/gi;
 
+    let totalOptimizedImages = 0;
+
     for (const page of pages) {
       let match;
 
@@ -171,11 +173,11 @@ export class Doctor {
         const fullImgTag = match[0];
         const src = match[1];
 
-        // Check missing alt
-        if (!/alt="[^"]+"/i.test(fullImgTag)) {
+        // Check missing alt attribute entirely (intentional empty alt="" is acceptable)
+        if (!/\balt=["']/i.test(fullImgTag)) {
           warnings.push({
             type: 'Missing Image Alt',
-            message: `${page.relativePath}: Image tag missing descriptive alt text: ${pc.yellow(src)}`
+            message: `${page.relativePath}: Image tag missing alt attribute: ${pc.yellow(src)}`
           });
         }
 
@@ -185,6 +187,11 @@ export class Doctor {
 
         totalImages++;
         let diskPath = null;
+        if (src.startsWith('/assets/images/')) {
+          totalOptimizedImages++;
+          continue;
+        }
+
         if (src.startsWith('/')) {
           diskPath = path.join(this.config.rootDir, 'public', src);
           if (!fs.existsSync(diskPath)) {
@@ -199,6 +206,29 @@ export class Doctor {
             type: 'Missing Image',
             message: `${page.relativePath} references missing image: ${pc.red(src)}`
           });
+        } else if (diskPath && fs.existsSync(diskPath)) {
+          try {
+            const stat = fs.statSync(diskPath);
+            const buffer = fs.readFileSync(diskPath);
+            const { inspectBuffer } = await import('../images/inspect.js');
+            const meta = inspectBuffer(buffer);
+            const relPath = path.relative(this.config.rootDir, diskPath) || diskPath;
+
+            if (meta.format === 'gif' && stat.size > 5 * 1024 * 1024) {
+              warnings.push({
+                type: 'Large GIF',
+                message: `${relPath} (${(stat.size / (1024 * 1024)).toFixed(1)} MB) - Large animated GIFs impact page load performance.`
+              });
+            } else if (stat.size > 3 * 1024 * 1024 || (meta.width && meta.width > 3000)) {
+              const dimStr = meta.width && meta.height ? `${meta.width} × ${meta.height}, ` : '';
+              warnings.push({
+                type: 'Large Source Image',
+                message: `${relPath} (${dimStr}${(stat.size / (1024 * 1024)).toFixed(1)} MB)`
+              });
+            }
+
+            totalOptimizedImages++;
+          } catch (_) {}
         }
       }
 
@@ -278,6 +308,9 @@ export class Doctor {
     if (pages.length > 0) passes.push(`${pages.length} documentation pages discovered & parsed`);
     if (totalLinks > 0 && errors.filter(e => e.type === 'Broken Internal Link').length === 0) {
       passes.push(`${totalLinks} internal links verified`);
+    }
+    if (totalImages > 0 && errors.filter(e => e.type === 'Missing Image').length === 0) {
+      passes.push(`${totalImages} image reference${totalImages === 1 ? '' : 's'} verified`);
     }
     if (errors.filter(e => e.type === 'Route Conflict').length === 0) {
       passes.push('All routes deterministic and valid');
