@@ -120,7 +120,57 @@ export function renderLayout({
   <script>
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
       window.addEventListener('load', function() {
-        navigator.serviceWorker.register('${withBase('/sw.js', base)}').catch(function() {});
+        var refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
+
+        navigator.serviceWorker.register('${withBase('/sw.js', base)}').then(function(reg) {
+          var pwaCfg = window.__DOCBOOT_PWA_CONFIG__ || {};
+          var interval = typeof pwaCfg.checkInterval === 'number' ? pwaCfg.checkInterval : 3600000;
+          if (interval > 0) {
+            setInterval(function() {
+              reg.update().catch(function() {});
+            }, interval);
+          }
+
+          document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+              reg.update().catch(function() {});
+            }
+          });
+          window.addEventListener('focus', function() {
+            reg.update().catch(function() {});
+          });
+
+          function triggerUpdate(registration) {
+            var mode = pwaCfg.autoUpdate || 'prompt';
+            if (mode === 'immediate') {
+              if (registration.waiting) {
+                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+              }
+            } else if (mode !== false && mode !== 'false') {
+              window.dispatchEvent(new CustomEvent('docboot:pwa-update', { detail: { registration: registration } }));
+            }
+          }
+
+          if (reg.waiting && navigator.serviceWorker.controller) {
+            triggerUpdate(reg);
+          }
+
+          reg.addEventListener('updatefound', function() {
+            var newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', function() {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                triggerUpdate(reg);
+              }
+            });
+          });
+        }).catch(function() {});
       });
     }
   </script>
@@ -137,6 +187,7 @@ export function renderLayout({
     window.__DOCBOOT_BASE__ = ${JSON.stringify(base)};
     window.__DOCBOOT_SEARCH_INDEX_URL__ = window.__EUIX_SEARCH_INDEX_URL__ = ${JSON.stringify(searchIndexUrl)};
     window.__DOCBOOT_SEARCH_CONFIG__ = window.__EUIX_SEARCH_CONFIG__ = ${JSON.stringify(config.search || {})};
+    window.__DOCBOOT_PWA_CONFIG__ = ${JSON.stringify(typeof config.pwa === 'object' ? config.pwa : (config.pwa ? { enabled: true, autoUpdate: 'prompt' } : {}))};
     ${isDev ? 'window.__DOCBOOT_DEV__ = window.__EUIX_DEV__ = true;' : ''}
   </script>
 

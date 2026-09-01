@@ -90,11 +90,13 @@ export class AssetGenerator {
       fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
       generatedFiles.push('public/manifest.webmanifest');
 
-      const swContent = `// Docboot Stale-While-Revalidate Service Worker
-const CACHE_NAME = 'docboot-cache-v1';
+      const version = Date.now().toString(36);
+      const swContent = `// Docboot Stale-While-Revalidate Service Worker with Auto-Update Support
+const CACHE_NAME = 'docboot-cache-${version}';
 const PRECACHE_URLS = [
   ${JSON.stringify(withBase('/', base))},
   ${JSON.stringify(withBase('/assets/docs.css', base))},
+  ${JSON.stringify(withBase('/assets/docs.js', base))},
   ${JSON.stringify(withBase('/assets/client.js', base))},
   ${JSON.stringify(withBase('/assets/search-runtime.js', base))},
   ${JSON.stringify(withBase('/favicon.svg', base))},
@@ -105,7 +107,6 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -117,6 +118,12 @@ self.addEventListener('activate', (event) => {
     )
   );
   self.clients.claim();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {

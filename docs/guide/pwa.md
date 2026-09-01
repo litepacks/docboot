@@ -40,6 +40,28 @@ When PWA mode is enabled, the production build automatically generates:
 
 ---
 
+## Auto-Update Lifecycle
+
+Docboot features an automated Service Worker lifecycle with dynamic cache versioning (`docboot-cache-v...`) and prompt notification toasts:
+
+### Auto-Update Modes
+
+```javascript title="docboot.config.js"
+export default {
+  pwa: {
+    enabled: true,
+    autoUpdate: 'prompt', // 'prompt' (toast notification) | 'immediate' (auto-reload) | false
+    checkInterval: 60 * 60 * 1000 // Periodic check in milliseconds (default: 1 hour)
+  }
+};
+```
+
+- **`prompt` (default)**: When a new build is detected, a sleek floating notification toast appears: *"Update Available — New documentation version is ready [Refresh]"*. Clicking Refresh applies the update and reloads the page.
+- **`immediate`**: Automatically activates the new Service Worker and reloads open tabs seamlessly.
+- **Tab Focus & Visibility Triggers**: Docboot automatically checks for updates whenever visitors return to the browser tab (`visibilitychange` / `window.focus`).
+
+---
+
 ## Offline Caching Behavior
 
 - **Fast Offline Navigation**: Once loaded, visitors can continue browsing previously cached documentation pages even when offline or in airplane mode.

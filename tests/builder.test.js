@@ -23,7 +23,7 @@ test('SiteBuilder builds full static site to dist', async () => {
   assert.ok(fs.existsSync(path.join(config.outDir, 'assets', 'docs.css')));
   assert.ok(fs.existsSync(path.join(config.outDir, 'assets', 'docs.js')));
   const docsJsContent = fs.readFileSync(path.join(config.outDir, 'assets', 'docs.js'), 'utf-8');
-  assert.ok(docsJsContent.length < 65000, `Expected minified docs.js < 65KB, got ${docsJsContent.length}`);
+  assert.ok(docsJsContent.length < 75000, `Expected minified docs.js < 75KB, got ${docsJsContent.length}`);
   assert.ok(fs.existsSync(path.join(config.outDir, 'search.json')));
   assert.ok(fs.existsSync(path.join(config.outDir, 'sitemap.xml')));
   assert.ok(fs.existsSync(path.join(config.outDir, 'robots.txt')));
@@ -148,6 +148,42 @@ test('SiteBuilder respects theme visibility controls (themeToggle, presetMenu, f
   assert.doesNotMatch(indexHtml, /id="docboot-preset-toggle"/);
   assert.doesNotMatch(indexHtml, /id="docboot-theme-toggle"/);
   assert.doesNotMatch(indexHtml, /class="docboot-font-step-btn/);
+
+  fs.rmSync(config.outDir, { recursive: true, force: true });
+});
+
+test('SiteBuilder generates PWA assets with auto-update support and dynamic cache versioning', async () => {
+  const rootDir = process.cwd();
+  const config = await loadConfig(rootDir, {
+    docs: './docs',
+    out: './dist_pwa_test',
+    pwa: {
+      enabled: true,
+      autoUpdate: 'prompt',
+      checkInterval: 1800000
+    },
+    clean: true
+  });
+
+  const builder = new SiteBuilder(config);
+  await builder.build({ isDev: false });
+
+  const swPath = path.join(config.outDir, 'sw.js');
+  assert.ok(fs.existsSync(swPath), 'Expected sw.js to be generated in outDir');
+
+  const swContent = fs.readFileSync(swPath, 'utf-8');
+  assert.match(swContent, /docboot-cache-/);
+  assert.match(swContent, /SKIP_WAITING/);
+  assert.match(swContent, /self\.addEventListener\('message'/);
+
+  const manifestPath = path.join(config.outDir, 'manifest.webmanifest');
+  assert.ok(fs.existsSync(manifestPath), 'Expected manifest.webmanifest to be generated');
+
+  const indexHtml = fs.readFileSync(path.join(config.outDir, 'index.html'), 'utf-8');
+  assert.match(indexHtml, /navigator\.serviceWorker\.register/);
+  assert.match(indexHtml, /controllerchange/);
+  assert.match(indexHtml, /docboot:pwa-update/);
+  assert.match(indexHtml, /"autoUpdate":"prompt"/);
 
   fs.rmSync(config.outDir, { recursive: true, force: true });
 });

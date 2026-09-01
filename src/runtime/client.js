@@ -594,6 +594,229 @@
     var activeCategory = 'all';
     var RECENT_SEARCHES_KEY = 'docboot_recent_searches';
 
+    var COMMAND_ACTIONS = [
+      {
+        id: 'toggle-theme',
+        title: 'Toggle Color Theme',
+        category: 'Theme',
+        description: 'Switch between light and dark appearance',
+        icon: '<svg class="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>',
+        badge: 'Action',
+        isAction: true,
+        run: function() {
+          var isDark = document.documentElement.classList.contains('dark');
+          if (window.__docboot_applyTheme) {
+            window.__docboot_applyTheme(isDark ? 'light' : 'dark');
+          } else {
+            var toggleBtn = document.querySelector('.docboot-theme-toggle, .euix-theme-toggle');
+            if (toggleBtn) toggleBtn.click();
+          }
+          announceA11y('Theme switched to ' + (isDark ? 'light' : 'dark'));
+        }
+      },
+      {
+        id: 'theme-zinc',
+        title: 'Switch Preset: Zinc',
+        category: 'Theme Preset',
+        description: 'Neutral slate monochromatic design',
+        icon: '<span class="w-3 h-3 rounded-full bg-zinc-500 inline-block shrink-0"></span>',
+        badge: 'Preset',
+        isAction: true,
+        run: function() {
+          if (window.__docboot_applyPreset) window.__docboot_applyPreset('zinc');
+          announceA11y('Switched preset to Zinc');
+        }
+      },
+      {
+        id: 'theme-ocean',
+        title: 'Switch Preset: Ocean',
+        category: 'Theme Preset',
+        description: 'Deep vibrant blue accent theme',
+        icon: '<span class="w-3 h-3 rounded-full bg-blue-500 inline-block shrink-0"></span>',
+        badge: 'Preset',
+        isAction: true,
+        run: function() {
+          if (window.__docboot_applyPreset) window.__docboot_applyPreset('ocean');
+          announceA11y('Switched preset to Ocean');
+        }
+      },
+      {
+        id: 'theme-emerald',
+        title: 'Switch Preset: Emerald',
+        category: 'Theme Preset',
+        description: 'Natural emerald green accent theme',
+        icon: '<span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shrink-0"></span>',
+        badge: 'Preset',
+        isAction: true,
+        run: function() {
+          if (window.__docboot_applyPreset) window.__docboot_applyPreset('emerald');
+          announceA11y('Switched preset to Emerald');
+        }
+      },
+      {
+        id: 'theme-violet',
+        title: 'Switch Preset: Violet',
+        category: 'Theme Preset',
+        description: 'Electric violet accent theme',
+        icon: '<span class="w-3.5 h-3.5 rounded-full bg-purple-500 inline-block shrink-0"></span>',
+        badge: 'Preset',
+        isAction: true,
+        run: function() {
+          if (window.__docboot_applyPreset) window.__docboot_applyPreset('violet');
+          announceA11y('Switched preset to Violet');
+        }
+      },
+      {
+        id: 'theme-amber',
+        title: 'Switch Preset: Amber',
+        category: 'Theme Preset',
+        description: 'Warm gold and amber accent theme',
+        icon: '<span class="w-3 h-3 rounded-full bg-amber-500 inline-block shrink-0"></span>',
+        badge: 'Preset',
+        isAction: true,
+        run: function() {
+          if (window.__docboot_applyPreset) window.__docboot_applyPreset('amber');
+          announceA11y('Switched preset to Amber');
+        }
+      },
+      {
+        id: 'theme-rose',
+        title: 'Switch Preset: Rose',
+        category: 'Theme Preset',
+        description: 'Modern rose red accent theme',
+        icon: '<span class="w-3 h-3 rounded-full bg-rose-500 inline-block shrink-0"></span>',
+        badge: 'Preset',
+        isAction: true,
+        run: function() {
+          if (window.__docboot_applyPreset) window.__docboot_applyPreset('rose');
+          announceA11y('Switched preset to Rose');
+        }
+      },
+      {
+        id: 'copy-markdown',
+        title: 'Copy Page as Markdown',
+        category: 'Action',
+        description: 'Copy raw markdown source of this page to clipboard',
+        icon: '<svg class="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>',
+        badge: 'Copy',
+        isAction: true,
+        run: function() {
+          var copyBtn = document.getElementById('docboot-copy-page-btn');
+          if (copyBtn) {
+            copyBtn.click();
+          } else {
+            var curPath = window.location.pathname;
+            var rawSrc = resolveBase('/_sources' + (curPath === '/' ? '/index' : curPath).replace(/\/$/, '') + '.md');
+            fetch(rawSrc)
+              .then(function(res) { return res.text(); })
+              .then(function(txt) {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(txt);
+                }
+                announceA11y('Page Markdown copied to clipboard');
+              }).catch(function() {});
+          }
+        }
+      },
+      {
+        id: 'open-github',
+        title: 'Open GitHub Repository',
+        category: 'Navigation',
+        description: 'Open source repository in a new browser tab',
+        icon: '<svg class="w-4 h-4 text-accent" fill="currentColor" viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>',
+        badge: 'External',
+        isAction: true,
+        run: function() {
+          var gh = document.querySelector('a[href*="github.com"]');
+          if (gh && gh.href) window.open(gh.href, '_blank', 'noopener,noreferrer');
+        }
+      },
+      {
+        id: 'cycle-font-size',
+        title: 'Cycle Body Font Size',
+        category: 'Accessibility',
+        description: 'Cycle text scale: 14px → 16px → 18px → 20px',
+        icon: '<svg class="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h8m-8 6h16"/></svg>',
+        badge: 'Display',
+        isAction: true,
+        run: function() {
+          var current = localStorage.getItem('docboot-font-size') || 'base';
+          var sizes = ['sm', 'base', 'lg', 'xl'];
+          var nextIdx = (sizes.indexOf(current) + 1) % sizes.length;
+          if (window.__docboot_applyFontSize) window.__docboot_applyFontSize(sizes[nextIdx]);
+          announceA11y('Font size set to ' + sizes[nextIdx]);
+        }
+      },
+      {
+        id: 'clear-recent',
+        title: 'Clear Recent Searches',
+        category: 'Data',
+        description: 'Delete search history from browser storage',
+        icon: '<svg class="w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>',
+        badge: 'Storage',
+        isAction: true,
+        run: function() {
+          clearRecentSearches();
+          announceA11y('Cleared recent searches');
+          resetEmptyState();
+        }
+      }
+    ];
+
+    function getRecentSearches() {
+      try {
+        var raw = localStorage.getItem(RECENT_SEARCHES_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function saveRecentSearch(item) {
+      if (!item || !item.route || item.isAction) return;
+      try {
+        var recents = getRecentSearches();
+        recents = recents.filter(function(r) {
+          return r.route !== item.route;
+        });
+        recents.unshift({
+          title: item.title,
+          section: item.section || item.title,
+          route: item.route,
+          query: input.value.trim() || item.title
+        });
+        if (recents.length > 5) recents = recents.slice(0, 5);
+        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recents));
+      } catch (_) {}
+    }
+
+    function clearRecentSearches() {
+      try {
+        localStorage.removeItem(RECENT_SEARCHES_KEY);
+      } catch (_) {}
+    }
+
+    function highlightText(text, query) {
+      if (!text) return '';
+      var escaped = escapeHtml(text);
+      if (!query) return escaped;
+
+      var tokens = query
+        .trim()
+        .split(/\s+/)
+        .map(function(t) { return t.replace(/[^a-zA-Z0-9_-]/g, ''); })
+        .filter(function(t) { return t.length >= 2; });
+
+      if (tokens.length === 0) return escaped;
+
+      var escapedTokens = tokens.map(function(t) {
+        return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      });
+      var regex = new RegExp('(' + escapedTokens.join('|') + ')', 'gi');
+
+      return escaped.replace(regex, '<mark class="bg-accent/25 text-accent font-semibold px-0.5 rounded-xs">$1</mark>');
+    }
+
     var CATEGORIES = [
       { id: 'all', label: 'All' },
       { id: 'getting-started', label: 'Getting Started' },
@@ -700,6 +923,16 @@
       resetEmptyState();
       trapModalFocus(modal, input);
       announceA11y('Search dialog opened');
+
+      // Immediate auto-focus with rAF and microtask backup for 100% reliable focus
+      input.focus({ preventScroll: true });
+      requestAnimationFrame(function() {
+        input.focus({ preventScroll: true });
+        input.select();
+      });
+      setTimeout(function() {
+        input.focus({ preventScroll: true });
+      }, 30);
 
       loadSearch().catch(function() {});
     }
@@ -2487,6 +2720,68 @@
     });
   }
 
+  // --- 13. PWA Auto-Update Notification Banner & Service Worker Lifecycle ---
+  function initPwaAutoUpdate() {
+    window.addEventListener('docboot:pwa-update', function(e) {
+      var registration = e.detail && e.detail.registration;
+      if (!registration || !registration.waiting) return;
+
+      // Avoid duplicate toasts
+      if (document.getElementById('docboot-pwa-toast')) return;
+
+      var toast = document.createElement('aside');
+      toast.id = 'docboot-pwa-toast';
+      toast.setAttribute('role', 'alert');
+      toast.setAttribute('aria-live', 'polite');
+      toast.className = 'fixed bottom-4 right-4 z-50 max-w-sm w-[calc(100vw-2rem)] p-3.5 bg-card/95 backdrop-blur-md border border-accent/40 rounded-xl shadow-xl flex items-center justify-between gap-3 text-sm text-card-foreground animate-in fade-in slide-in-from-bottom-3 duration-300 ring-1 ring-accent/20';
+
+      var leftDiv = document.createElement('div');
+      leftDiv.className = 'flex items-center gap-2.5 min-w-0';
+
+      var iconSpan = document.createElement('span');
+      iconSpan.className = 'w-7 h-7 rounded-lg bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shrink-0';
+      iconSpan.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
+
+      var textDiv = document.createElement('div');
+      textDiv.className = 'min-w-0';
+      textDiv.innerHTML = '<div class="font-medium text-xs sm:text-sm text-foreground truncate">Update Available</div><div class="text-[11px] text-muted-foreground truncate">New documentation version is ready.</div>';
+
+      leftDiv.appendChild(iconSpan);
+      leftDiv.appendChild(textDiv);
+
+      var actionsDiv = document.createElement('div');
+      actionsDiv.className = 'flex items-center gap-1.5 shrink-0';
+
+      var reloadBtn = document.createElement('button');
+      reloadBtn.type = 'button';
+      reloadBtn.className = 'px-2.5 py-1.5 rounded-lg bg-accent text-accent-foreground font-semibold text-xs hover:bg-accent/90 transition-colors shadow-2xs cursor-pointer';
+      reloadBtn.textContent = 'Refresh';
+      reloadBtn.addEventListener('click', function() {
+        reloadBtn.disabled = true;
+        reloadBtn.textContent = 'Updating...';
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+
+      var dismissBtn = document.createElement('button');
+      dismissBtn.type = 'button';
+      dismissBtn.className = 'w-7 h-7 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer';
+      dismissBtn.setAttribute('aria-label', 'Dismiss update notification');
+      dismissBtn.innerHTML = '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>';
+      dismissBtn.addEventListener('click', function() {
+        toast.remove();
+      });
+
+      actionsDiv.appendChild(reloadBtn);
+      actionsDiv.appendChild(dismissBtn);
+
+      toast.appendChild(leftDiv);
+      toast.appendChild(actionsDiv);
+      document.body.appendChild(toast);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     initTheme();
     initCopyButtons();
@@ -2505,6 +2800,7 @@
     initLiveReload();
     initScrollRestoration();
     initSidebarCollapsible();
+    initPwaAutoUpdate();
   });
 })();
 
