@@ -1,21 +1,318 @@
 ---
 title: Rich Content Primitives
-description: Rich technical documentation primitives without MDX or JSX.
+description: Expressive technical documentation primitives and authoring utilities without MDX or JSX.
 order: 1
 ---
 
 # Rich Content Primitives
 
-> **Rich documentation without MDX or JSX.**  
-> Most documentation UI should not require switching from standard Markdown to JSX components.
+> **Rich technical documentation without MDX or JSX.**  
+> Most documentation UI should not require switching from standard Markdown to JSX frameworks.
 
-Docboot provides expressive, accessible primitives via standard Markdown directives (`:::directive`) that compile ahead of time into portable HTML.
+Docboot provides expressive, accessible primitives via standard Markdown directives (`:::directive`) that compile ahead of time into portable HTML with progressive enhancement.
 
 ---
 
-## 1. Callout Containers
+## 1. Before / After Comparison (`:::compare`)
 
-Highlight important notes, warnings, and tips:
+Compare two screenshots or visual states with an accessible interactive slider:
+
+:::compare
+before: https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&auto=format&fit=crop&q=80
+after: https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&auto=format&fit=crop&q=80
+beforeLabel: Legacy Architecture
+afterLabel: Modern Docboot
+beforeAlt: Legacy architecture screenshot
+afterAlt: Modern Docboot screenshot
+:::
+
+### Features:
+- **Responsive & Accessible**: Works with mouse drag, touch swipes, and keyboard controls (Arrow keys).
+- **Zero JS Fallback**: Shows clean side-by-side or stacked images if JavaScript is disabled.
+- **Image Pipeline Integrated**: Optimizes images, generates responsive WebP/AVIF variants, and integrates with the lightbox zoom viewer.
+
+Syntax:
+```markdown
+:::compare
+before: ./images/legacy-ui.png
+after: ./images/modern-ui.png
+beforeLabel: Before v2
+afterLabel: After v2
+beforeAlt: Legacy interface screenshot
+afterAlt: Modern interface screenshot
+:::
+```
+
+---
+
+## 2. Steps Walkthrough (`:::steps`)
+
+Structure sequential tutorials, setup guides, and onboarding walkthroughs:
+
+:::steps
+::step Install dependencies
+Ensure Node.js 18+ is installed on your system, then install the package:
+
+```bash
+npm install -D docboot
+```
+::
+
+::step Initialize project configuration
+Create your `docboot.config.js` in the project root:
+
+```js [docboot.config.js]
+export default {
+  title: 'My Documentation',
+  rootDir: 'docs'
+};
+```
+::
+
+::step Start the fast dev server
+Launch the local development environment with instant live reload:
+
+```bash
+npx docboot dev
+```
+::
+:::
+
+Syntax:
+````markdown
+:::steps
+::step Install dependencies
+Run npm install in your terminal.
+::
+
+::step Configure your site
+Create docboot.config.js.
+::
+:::
+````
+
+---
+
+## 3. Directory File Trees (`:::tree`)
+
+Display structured project folders and file layouts with semantic icons:
+
+:::tree
+- package.json
+- docboot.config.js
+- docs/
+  - index.md
+  - guide/
+    - getting-started.md
+    - rich-content.md
+    - images.md
+  - public/
+    - favicon.svg
+    - images/
+      - hero.png
+- dist/
+:::
+
+Syntax:
+```markdown
+:::tree
+- package.json
+- docboot.config.js
+- src/
+  - index.js
+  - compiler/
+    - builder.js
+- docs/
+  - guide/
+    - introduction.md
+:::
+```
+
+---
+
+## 4. Interactive Terminal Sessions (`:::terminal`)
+
+Show realistic terminal command sessions with window chrome, status markers, and smart command-only copy:
+
+:::terminal title="Terminal — zsh"
+$ npx docboot build
+✓ Discovered 18 documentation pages
+✓ Optimized 12 images (saved 68% bandwidth)
+✓ Compiled Tailwind CSS and search index
+✓ Static documentation built to ./dist in 142ms
+:::
+
+### Features:
+- macOS terminal title bar and status markers (`✓`, `⚠`, `✕`, `$`, `>`).
+- Smart Copy button copies **only executable commands** (stripping `$` and command outputs).
+
+Syntax:
+```markdown
+:::terminal title="Terminal — zsh"
+$ npm test
+✓ 106 tests passed (0 errors)
+:::
+```
+
+---
+
+## 5. Status & Version Badges
+
+Communicate API lifecycle states, stability, and release milestones inline or in headings:
+
+- Stable: :::badge stable
+- Beta: :::badge beta
+- Experimental: :::badge experimental
+- Deprecated: :::badge deprecated
+- Planned: :::badge planned
+- Introduced in: :::since 2.4.0
+
+Syntax:
+```markdown
+API Status: :::badge stable
+Added in: :::since 2.4.0
+Experimental feature: :::badge experimental
+```
+
+---
+
+## 6. Deprecated Notice (`:::deprecated`)
+
+Display clear deprecation warnings with version info and recommended migration paths:
+
+:::deprecated since="2.0.0"
+`config.legacyMode` has been removed. Use the new zero-config build pipeline instead.
+:::
+
+Syntax:
+```markdown
+:::deprecated since="2.0.0"
+Use `newFunction()` instead of `oldFunction()`.
+:::
+```
+
+---
+
+## 7. Carousel Walkthrough (`:::carousel`)
+
+Guide readers through multi-step screenshots or product tours:
+
+:::carousel
+- src: https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&auto=format&fit=crop&q=80
+  alt: Step 1 Code Editor
+  caption: 1. Write clean Markdown with standard directives
+
+- src: https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&auto=format&fit=crop&q=80
+  alt: Step 2 Terminal
+  caption: 2. Build production assets with zero configuration
+
+- src: https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop&q=80
+  alt: Step 3 Deployment
+  caption: 3. Deploy instantly to GitHub Pages, Netlify, or Vercel
+:::
+
+Syntax:
+```markdown
+:::carousel
+- src: ./images/step-1.png
+  alt: Step 1 screenshot
+  caption: 1. Configure settings
+
+- src: ./images/step-2.png
+  alt: Step 2 screenshot
+  caption: 2. Review results
+:::
+```
+
+---
+
+## 8. Download Cards (`:::download`)
+
+Provide direct download links with automatic file extension detection and size formatting:
+
+:::download
+file: ./public/favicon.svg
+title: Docboot Brand Assets
+description: Official vector SVG logos and icons for press and branding.
+version: v2.4.0
+:::
+
+Syntax:
+```markdown
+:::download
+file: ./assets/release.zip
+title: Offline Documentation Bundle
+description: Complete standalone static archive for offline environments.
+version: v2.4.0
+:::
+```
+
+---
+
+## 9. Build-Time QR Codes (`:::qr`)
+
+Generate pure SVG QR codes ahead-of-time during build for mobile device pairing, PWA installation, or quick reference:
+
+:::qr https://github.com/litepacks/docboot
+title: Scan to open on mobile device
+size: 160
+:::
+
+Syntax:
+```markdown
+:::qr https://example.com/mobile-demo
+title: Scan to test on real device
+size: 160
+:::
+```
+
+---
+
+## 10. Collapsible Long Code Blocks
+
+Prevent long configuration files or code snippets from dominating the reading experience:
+
+```json collapse collapsedLines="10"
+{
+  "name": "docboot-project",
+  "version": "1.0.0",
+  "description": "High performance technical documentation",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "docboot dev",
+    "build": "docboot build",
+    "doctor": "docboot doctor",
+    "stats": "docboot stats"
+  },
+  "dependencies": {
+    "docboot": "^2.4.0"
+  },
+  "devDependencies": {
+    "postcss": "^8.4.0"
+  },
+  "keywords": [
+    "documentation",
+    "static-site-generator",
+    "zero-config",
+    "tailwind",
+    "markdown"
+  ],
+  "author": "Docboot Team",
+  "license": "MIT"
+}
+```
+
+Syntax:
+````markdown
+```json collapse collapsedLines="12"
+{ ... long content ... }
+```
+````
+
+---
+
+## 11. Accessible Callouts
 
 :::tip Pro Tip
 You can use `:::tip`, `:::info`, `:::warning`, `:::danger`, and `:::note` with optional custom titles.
@@ -25,26 +322,24 @@ You can use `:::tip`, `:::info`, `:::warning`, `:::danger`, and `:::note` with o
 This API is subject to changes in upcoming minor releases.
 :::
 
-:::danger Critical Requirement
-Never commit production API keys or credentials to public Git repositories.
-:::
+---
+
+## 12. Footnotes
+
+Add bibliographic references and clarifying notes using standard CommonMark footnote syntax[^1].
+
+[^1]: Docboot automatically compiles footnotes with accessible bidirectional back-links (`↩`).
 
 Syntax:
 ```markdown
-:::tip Pro Tip
-Content goes here.
-:::
+Here is a claim[^note].
 
-:::warning
-Experimental API.
-:::
+[^note]: Reference details and backlink.
 ```
 
 ---
 
-## 2. Accessible Tabs & Synced Groups
-
-Create responsive tab interfaces with optional cross-page synchronized selection:
+## 13. Synchronized Package Manager Tabs
 
 :::tabs group="package-manager"
 ::tab npm
@@ -65,150 +360,11 @@ bun add docboot
 ```
 :::
 
-When `group="package-manager"` is set, selecting `pnpm` will automatically switch all other tabs on the website with the same group name and persist the preference in `localStorage`.
-
-Syntax:
-````markdown
-:::tabs group="package-manager"
-::tab npm
-```bash
-npm install docboot
-```
-::tab pnpm
-```bash
-pnpm add docboot
-```
-:::
-````
-
----
-
-## 3. Code Groups
-
-Display multi-language code snippets with tabbed file headers:
-
-:::code-group
-```js [JavaScript]
-export function greet(name) {
-  return `Hello, ${name}!`;
-}
-```
-
-```ts [TypeScript]
-export function greet(name: string): string {
-  return `Hello, ${name}!`;
-}
-```
-
-```python [Python]
-def greet(name: str) -> str:
-    return f"Hello, {name}!"
-```
-
-```rust [Rust]
-pub fn greet(name: &str) -> String {
-    format!("Hello, {}!", name)
-}
-```
-:::
-
-Syntax:
-````markdown
-:::code-group
-```js [JavaScript]
-const x = 1;
-```
-```ts [TypeScript]
-const x: number = 1;
-```
-:::
-````
-
----
-
-## 4. Collapsible Details (`:::details`)
-
-Native, accessible `<details>` elements that work smoothly with or without JavaScript:
-
-:::details Advanced Build Options
-When building in resource-constrained CI environments, you can disable compression or clear cache:
-```bash
-docboot build --clean --no-cache
-```
-:::
-
-Syntax:
-```markdown
-:::details Custom Title
-Content visible when expanded.
-:::
-```
-
----
-
-## 5. Text Size Modifiers
-
-Control typographic hierarchy for introductory text and fine print:
-
-:::lead
-Lead paragraphs are styled with larger, high-contrast typography for chapter introductions.
-:::
-
-:::text-sm
-Smaller auxiliary text or fine print for terms and references.
-:::
-
-Syntax:
-```markdown
-:::lead
-Introductory paragraph.
-:::
-
-:::text-sm
-Fine print note.
-:::
-```
-
----
-
-## 6. Safe Embeds (`:::embed`) & Security Model
-
-Docboot includes a secure, sandboxed embedding mechanism for external demos and videos:
-
-:::embed youtube
-src: https://www.youtube.com/watch?v=dQw4w9WgXcQ
-title: Getting Started Video Walkthrough
-ratio: 16/9
-:::
-
-### Security Model:
-- **Domain Allowlist**: Embed sources must match allowed domains configured in `docboot.config.js` (default: `youtube.com`, `codesandbox.io`, `stackblitz.com`, `codepen.io`, `vimeo.com`).
-- **Iframe Sandbox**: Rendered with strict `loading="lazy"`, `referrerpolicy="no-referrer"`, and sandbox attributes.
-- **Safe Fallback**: Any disallowed domain or malformed URL is safely rejected by `docboot doctor` and rendered as a secure external link.
-
----
-
-## 7. Image Lightbox & Galleries
-
-All standard Markdown images automatically support zoom-in lightbox modals.
-
-You can also group multiple images into responsive grid galleries:
-
-:::gallery
-- src: https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80
-  alt: Source Code
-  caption: Clean architecture and modular components
-
-- src: https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&auto=format&fit=crop&q=80
-  alt: Developer Workspace
-  caption: High performance local development server
-:::
-
 ---
 
 ## Next Steps
 
-- [Image Optimization](/guide/images) — Automatic responsive pictures, modern formats (AVIF/WebP), and galleries
-- [Mermaid Diagrams](/guide/diagrams) — Interactive flowcharts and architecture graphs
-- [Directives Reference](/reference/directives) — Complete directive syntax cheatsheet
-- [Docboot Doctor](/tooling/doctor) — Validating broken directives and missing images
+- [Image Optimization Pipeline](/guide/images) — Automatic responsive pictures, WebP/AVIF, and galleries
+- [Mermaid Diagrams](/guide/diagrams) — Flowcharts and architecture graphs
+- [Docboot Doctor](/tooling/doctor) — Validating links, redirects, and stale pages
+- [Configuration Reference](/reference/configuration) — Full options cheatsheet

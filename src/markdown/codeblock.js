@@ -1,19 +1,33 @@
 import { highlight, escapeHtml } from './highlighter.js';
 
 /**
- * Parses code block info string (e.g. `js title="index.js" {2,4-6}`)
+ * Parses code block info string (e.g. `js title="index.js" {2,4-6} collapse collapsedLines="25"`)
  * @param {string} info 
- * @returns {{ lang: string, filename: string, highlightLines: number[] }}
+ * @returns {{ lang: string, filename: string, highlightLines: number[], isCollapsible: boolean, collapsedLines: number }}
  */
 export function parseCodeInfo(info = '') {
   const parts = info.trim().split(/\s+/);
   const lang = (parts[0] || 'text').toLowerCase();
   let filename = '';
   const highlightLines = new Set();
+  let isCollapsible = false;
+  let collapsedLines = 20;
+
+  // Match bracketed title e.g. [index.js]
+  const titleBracketMatch = info.match(/\[([^\]]+)\]/);
+  if (titleBracketMatch) {
+    filename = titleBracketMatch[1].trim();
+  }
 
   for (const part of parts) {
     if (part.startsWith('title=') || part.startsWith('filename=')) {
       filename = part.split('=')[1].replace(/^["']|["']$/g, '');
+    } else if (part === 'collapse' || part === 'collapsed' || part === 'collapse=true') {
+      isCollapsible = true;
+    } else if (part.startsWith('collapsedlines=') || part.startsWith('collapsedLines=')) {
+      isCollapsible = true;
+      const num = parseInt(part.split('=')[1].replace(/^["']|["']$/g, ''), 10);
+      if (!isNaN(num) && num > 0) collapsedLines = num;
     } else if (/^\{([0-9,\-]+)\}$/.test(part)) {
       const ranges = part.slice(1, -1).split(',');
       for (const r of ranges) {
@@ -32,7 +46,15 @@ export function parseCodeInfo(info = '') {
     }
   }
 
-  return { lang, filename, highlightLines: Array.from(highlightLines) };
+  return {
+    lang,
+    filename,
+    title: filename,
+    highlightLines: Array.from(highlightLines),
+    isCollapsible,
+    collapsible: isCollapsible,
+    collapsedLines
+  };
 }
 
 /**
@@ -71,7 +93,7 @@ export function sanitizeMermaidCode(code = '') {
  * @returns {string} HTML markup
  */
 export function renderCodeBlock(code, info = '') {
-  const { lang, filename, highlightLines } = parseCodeInfo(info);
+  const { lang, filename, highlightLines, isCollapsible, collapsedLines } = parseCodeInfo(info);
 
   if (lang === 'mermaid') {
     const sanitized = sanitizeMermaidCode(code);
@@ -135,10 +157,20 @@ export function renderCodeBlock(code, info = '') {
     }).join('\n');
   }
 
-  const extraContainerClass = hasLineHighlight ? ' has-highlighted-lines' : '';
+  const collapsibleClass = isCollapsible ? ' docboot-code-collapsible is-collapsed' : '';
+  const extraContainerClass = `${hasLineHighlight ? ' has-highlighted-lines' : ''}${collapsibleClass}`;
+  const collapseAttrs = isCollapsible ? ` data-collapsible="true" data-collapsed-lines="${collapsedLines}"` : '';
+
+  const collapseFooterHtml = isCollapsible ? `
+  <div class="docboot-code-collapse-footer absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0d1117] via-[#0d1117]/95 to-transparent pt-10 pb-3 px-4 flex items-center justify-center select-none">
+    <button type="button" class="docboot-code-expand-btn inline-flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold bg-[#21262d] text-[#e6edf3] hover:bg-[#30363d] transition-all cursor-pointer shadow-xs border border-[#30363d]" aria-expanded="false" aria-label="Expand full code example">
+      <svg class="w-3.5 h-3.5 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      <span class="expand-text text-[11px]">Show full example</span>
+    </button>
+  </div>` : '';
 
   return `
-<div class="docboot-codeblock euix-codeblock group my-6 rounded-lg border border-border/90 bg-[#0d1117] text-[#e6edf3] shadow-md shadow-black/10 overflow-hidden text-sm${extraContainerClass}">
+<div class="docboot-codeblock euix-codeblock relative group my-6 rounded-lg border border-border/90 bg-[#0d1117] text-[#e6edf3] shadow-md shadow-black/10 overflow-hidden text-sm${extraContainerClass}"${collapseAttrs}>
   <div class="flex items-center justify-between px-4 py-2.5 border-b border-[#21262d] bg-[#161b22] text-xs font-mono select-none">
     <div class="flex items-center gap-2">
       <div class="flex items-center gap-1.5 mr-2">
@@ -157,9 +189,10 @@ export function renderCodeBlock(code, info = '') {
       </button>
     </div>
   </div>
-  <div class="relative overflow-x-auto p-4 font-mono text-[13px] leading-relaxed">
+  <div class="docboot-code-body relative overflow-x-auto p-4 font-mono text-[13px] leading-relaxed">
     <pre class="m-0 p-0 bg-transparent text-[#e6edf3]"><code>${finalCodeHtml}</code></pre>
   </div>
+  ${collapseFooterHtml}
 </div>
 `;
 }

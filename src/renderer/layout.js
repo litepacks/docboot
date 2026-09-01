@@ -64,6 +64,33 @@ export function renderLayout({
   const showThemeToggle = config.theme?.themeToggle !== false && config.theme?.allowModeSwitch !== false;
   const showPresetMenu = config.theme?.presetMenu !== false && config.theme?.allowPresetSwitch !== false && config.theme?.fontMenu !== false;
 
+  // Related Topics Cards
+  let relatedPagesHtml = '';
+  if (Array.isArray(page.relatedPages) && page.relatedPages.length > 0) {
+    relatedPagesHtml = `
+<div class="docboot-related-pages not-prose mt-12 pt-8 border-t border-border/80 select-none">
+  <div class="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-1.5">
+    <svg class="w-4 h-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+    <span>Related Topics</span>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+    ${page.relatedPages.map(rp => `
+      <a href="${withBase(rp.route, base)}" class="group p-3.5 rounded-xl border border-border bg-card-bg/50 hover:border-accent/50 hover:bg-card-bg transition-all shadow-2xs no-underline flex flex-col justify-between">
+        <div>
+          ${rp.category ? `<div class="text-[10px] font-bold uppercase tracking-wider text-accent mb-1">${escapeHtml(rp.category)}</div>` : ''}
+          <div class="text-sm font-semibold text-foreground group-hover:text-accent transition-colors">${escapeHtml(rp.title)}</div>
+          ${rp.description ? `<p class="text-xs text-muted-foreground mt-1 line-clamp-2">${escapeHtml(rp.description)}</p>` : ''}
+        </div>
+        <div class="text-[11px] font-medium text-accent mt-3 flex items-center gap-1">
+          <span>Read article</span>
+          <svg class="w-3 h-3 group-hover:translate-x-0.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </a>
+    `).join('')}
+  </div>
+</div>`;
+  }
+
   const desktopSidebarHtml = renderSidebarHtml(sidebar, page.route, base, 'sidebar-desktop');
   const mobileSidebarHtml = renderSidebarHtml(sidebar, page.route, base, 'sidebar-mobile');
   const tocHtml = renderTocHtml(page.toc || []);
@@ -281,13 +308,20 @@ export function renderLayout({
 
     <!-- Main Content Column -->
     <main id="main-content" role="main" tabindex="-1" class="flex-1 min-w-0 py-8 md:px-8 lg:px-12 max-w-4xl focus:outline-none">
-      ${breadcrumbsHtml}
+      <div class="flex items-center justify-between gap-4 mb-4">
+        <div class="flex-1 min-w-0">${breadcrumbsHtml}</div>
+        <button type="button" class="docboot-copy-page-md-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors cursor-pointer border border-border/60 shrink-0 select-none" data-source-url="${page.sourceMarkdownUrl || ''}" aria-label="Copy page as Markdown">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span class="copy-page-md-text">Copy Markdown</span>
+        </button>
+      </div>
       ${sourceBadgeHtml}
 
       <article role="article" class="prose max-w-none">
         ${page.html}
       </article>
 
+      ${relatedPagesHtml}
       ${pageMetaFooterHtml}
       ${prevNextHtml}
     </main>

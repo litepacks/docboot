@@ -27,6 +27,23 @@ export function renderPageMetaFooter({ page, config }) {
 
   const dateItems = [];
 
+  // Reading time and word count
+  const showReadingTime = footerConfig.readingTime !== false && page.frontmatter?.readingTime !== false;
+  if (showReadingTime && page.wordCount) {
+    const readingMins = Math.max(1, Math.ceil(page.wordCount / 200));
+    dateItems.push(`<span>${readingMins} min read</span>`);
+    dateItems.push(`<span class="text-muted-foreground/40">·</span>`);
+  }
+
+  // Page ownership / maintainers
+  const owner = page.frontmatter?.owner || (Array.isArray(page.frontmatter?.maintainers) ? page.frontmatter.maintainers.join(', ') : null);
+  if (owner) {
+    dateItems.push(`<span class="inline-flex items-center gap-1 font-medium text-foreground/80"><svg class="w-3 h-3 text-accent shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Maintained by ${escapeHtml(owner)}</span></span>`);
+    if (formattedCreated || formattedUpdated) {
+      dateItems.push(`<span class="text-muted-foreground/40">·</span>`);
+    }
+  }
+
   if (formattedCreated && formattedUpdated) {
     if (formattedCreated === formattedUpdated) {
       // Same date: show single meaningful label

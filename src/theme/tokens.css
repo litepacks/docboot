@@ -678,4 +678,27 @@ html.filter-tritanopia {
   outline-offset: 1px;
 }
 
+/* Collapsible Code Blocks */
+.docboot-code-collapsible.is-collapsed .docboot-code-body {
+  max-height: 280px;
+  overflow-y: hidden;
+}
+
+.docboot-code-collapsible:not(.is-collapsed) .docboot-code-collapse-footer {
+  position: static;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background: transparent;
+  border-top: 1px solid #21262d;
+}
+
+/* Comparison Slider */
+.docboot-compare-handle {
+  touch-action: none;
+}
+.docboot-compare-handle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 

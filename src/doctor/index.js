@@ -17,8 +17,8 @@ export class Doctor {
   }
 
   async diagnose(options = {}) {
-    const fileEntries = scanMarkdownFiles(this.config.docsDir);
-    const pages = [];
+    const fileEntries = options.pagesOverride ? [] : scanMarkdownFiles(this.config.docsDir);
+    const pages = options.pagesOverride ? [...options.pagesOverride] : [];
     const routeMap = new Map();
     const errors = [];
     const warnings = [];
@@ -26,6 +26,12 @@ export class Doctor {
 
     let totalLinks = 0;
     let totalImages = 0;
+
+    if (options.pagesOverride) {
+      for (const p of options.pagesOverride) {
+        routeMap.set(p.route, p);
+      }
+    }
 
     // 1. Scan and parse all pages in parallel
     const parsedEntries = await Promise.all(
@@ -119,7 +125,7 @@ export class Doctor {
 
     const pageHeadingMap = new Map();
     for (const page of pages) {
-      pageHeadingMap.set(page.route, new Set(page.headings.map(h => h.id)));
+      pageHeadingMap.set(page.route, new Set((page.headings || []).map(h => h.id)));
     }
 
     const linkRegex = /<a\s+[^>]*href="([^"]+)"[^>]*>/gi;
@@ -148,6 +154,12 @@ export class Doctor {
           const stripped = cleanTargetPath.replace(/^\/[^/]+/, '');
           if (stripped && validRoutes.has(stripped)) {
             cleanTargetPath = stripped;
+          } else {
+            const publicPath = path.resolve(this.config.rootDir, 'public', cleanTargetPath.replace(/^\/+/, ''));
+            const rootPath = path.resolve(this.config.rootDir, cleanTargetPath.replace(/^\/+/, ''));
+            if (fs.existsSync(publicPath) || fs.existsSync(rootPath)) {
+              continue; // Valid static asset or download file
+            }
           }
         }
         const resolvedPath = cleanTargetPath === '' ? page.route : cleanTargetPath;
@@ -157,7 +169,7 @@ export class Doctor {
             type: 'Broken Internal Link',
             message: `${page.relativePath} → ${pc.red(href)} (Target route not found)`
           });
-        } else if (hash) {
+        } else if (hash && !hash.startsWith('fn-') && !hash.startsWith('fnref-')) {
           const targetHeadings = pageHeadingMap.get(resolvedPath);
           if (targetHeadings && !targetHeadings.has(hash)) {
             warnings.push({
@@ -301,6 +313,49 @@ export class Doctor {
           type: 'Orphan Page',
           message: `"${page.relativePath}" (${page.route}) is not reachable from the sidebar navigation.`
         });
+      }
+    }
+
+    // 4. Stale Pages Check (optional --stale flag)
+    if (options.stale) {
+      const staleDays = this.config.docs?.staleAfterDays || 365;
+      const maxAgeMs = staleDays * 86400000;
+      const now = Date.now();
+      for (const page of pages) {
+        const updatedAt = page.git?.updatedAt ? new Date(page.git.updatedAt).getTime() : null;
+        if (updatedAt && (now - updatedAt > maxAgeMs)) {
+          const daysAgo = Math.floor((now - updatedAt) / 86400000);
+          warnings.push({
+            type: 'Potentially Stale Page',
+            message: `${page.relativePath} (Last updated ${daysAgo} days ago - threshold: ${staleDays}d)`
+          });
+        }
+      }
+    }
+
+    // 5. Check Static Redirects
+    if (this.config.redirects && typeof this.config.redirects === 'object') {
+      const redirects = this.config.redirects;
+      for (const [from, to] of Object.entries(redirects)) {
+        const cleanTo = to.split('?')[0].split('#')[0];
+        if (!validRoutes.has(cleanTo) && !redirects[cleanTo]) {
+          warnings.push({
+            type: 'Invalid Redirect Target',
+            message: `Redirect ${from} → ${to} points to non-existent route: ${pc.yellow(cleanTo)}`
+          });
+        }
+        if (redirects[to]) {
+          warnings.push({
+            type: 'Redirect Chain',
+            message: `Redirect chain detected: ${from} → ${to} → ${redirects[to]}`
+          });
+        }
+        if (redirects[to] === from) {
+          errors.push({
+            type: 'Redirect Loop',
+            message: `Redirect loop detected: ${from} ↔ ${to}`
+          });
+        }
       }
     }
 

@@ -44,6 +44,7 @@ export function parseArgs(rawArgs = process.argv.slice(2)) {
     force: false,
     github: false,
     a11y: false,
+    stale: false,
     presenter: false,
     file: null,
     unknown: []
@@ -59,7 +60,9 @@ export function parseArgs(rawArgs = process.argv.slice(2)) {
       flags.help = true;
     } else if (arg === '--version') {
       flags.version = true;
-    } else if (arg === '--build') {
+    } else if (arg === '--stale') {
+      flags.stale = true;
+    } else if (arg === '--build' || arg === '-b') {
       flags.build = true;
     } else if (arg === '--serve') {
       flags.serve = true;
@@ -199,12 +202,10 @@ export function parseArgs(rawArgs = process.argv.slice(2)) {
     flags.command = 'dev'; // Default behavior: zero-config dev server
   }
 
-  // Default directory to current directory if not provided
-  if (!flags.dir) {
-    flags.dir = '.';
+  // Only resolve directory if explicitly provided by user
+  if (flags.dir) {
+    flags.dir = path.resolve(process.cwd(), flags.dir);
   }
-
-  flags.dir = path.resolve(process.cwd(), flags.dir);
 
   return flags;
 }

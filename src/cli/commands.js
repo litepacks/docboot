@@ -87,7 +87,7 @@ export async function runCommand(flags) {
   if (flags.command === 'doctor') {
     logger.banner(VERSION);
     const doctor = new Doctor(config, logger);
-    const result = await doctor.diagnose({ github: flags.github, a11y: flags.a11y });
+    const result = await doctor.diagnose({ github: flags.github, a11y: flags.a11y, stale: flags.stale });
 
     console.log(pc.bold('  DOCUMENTATION HEALTH CHECK\n'));
 

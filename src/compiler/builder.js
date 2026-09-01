@@ -22,6 +22,7 @@ import { AssetGenerator } from '../assets/generator.js';
 import { GitMetadataResolver } from '../metadata/git.js';
 import { parseGitHubRemote } from '../setup/github/detect.js';
 import { ImageProcessor } from '../images/processor.js';
+import { calculateRelatedPages } from '../routes/related.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -306,6 +307,13 @@ export class SiteBuilder {
       }
     }
 
+    // Calculate deterministic related pages and source markdown URL for each page
+    for (const page of pages) {
+      page.relatedPages = calculateRelatedPages(page, pages, { limit: 4 });
+      const sourceRel = page.route === '/' ? 'index.md' : page.route.replace(/^\/+/, '').replace(/\/$/, '') + '.md';
+      page.sourceMarkdownUrl = withBase(`/_sources/${sourceRel}`, this.config.base);
+    }
+
     // 4. Pre-render all HTML pages
     const renderedPages = [];
     const htmlContentsForTailwind = [];
@@ -429,6 +437,59 @@ export class SiteBuilder {
 
     // Write 404.html to output root
     fs.writeFileSync(path.join(this.config.outDir, '404.html'), notFoundHtml, 'utf-8');
+
+    // 7.5 Write raw Markdown source endpoints for "Copy as Markdown"
+    const sourcesDir = path.join(this.config.outDir, '_sources');
+    fs.mkdirSync(sourcesDir, { recursive: true });
+    for (const page of pages) {
+      if (page.frontmatter?.draft) continue;
+      const sourceRel = page.route === '/' ? 'index.md' : page.route.replace(/^\/+/, '').replace(/\/$/, '') + '.md';
+      const targetSourcePath = path.join(sourcesDir, sourceRel);
+      fs.mkdirSync(path.dirname(targetSourcePath), { recursive: true });
+      fs.writeFileSync(targetSourcePath, page.rawContent || '', 'utf-8');
+    }
+
+    // 7.6 Generate static redirects & aliases
+    const redirectsMap = new Map();
+    if (this.config.redirects && typeof this.config.redirects === 'object') {
+      for (const [from, to] of Object.entries(this.config.redirects)) {
+        redirectsMap.set(from.startsWith('/') ? from : '/' + from, to);
+      }
+    }
+    for (const page of pages) {
+      if (Array.isArray(page.frontmatter?.aliases)) {
+        for (const alias of page.frontmatter.aliases) {
+          const fromRoute = alias.startsWith('/') ? alias : '/' + alias;
+          redirectsMap.set(fromRoute, page.route);
+        }
+      }
+    }
+
+    const netlifyRedirectLines = [];
+    for (const [fromRoute, toRoute] of redirectsMap.entries()) {
+      const cleanFrom = fromRoute.replace(/^\/+/, '');
+      const targetDir = path.join(this.config.outDir, cleanFrom);
+      fs.mkdirSync(targetDir, { recursive: true });
+      const targetUrl = withBase(toRoute, this.config.base);
+      const redirectHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting...</title>
+  <link rel="canonical" href="${targetUrl}">
+  <meta http-equiv="refresh" content="0; url=${targetUrl}">
+  <script>window.location.replace("${targetUrl}");</script>
+</head>
+<body>
+  <p>Redirecting to <a href="${targetUrl}">${targetUrl}</a>...</p>
+</body>
+</html>`;
+      fs.writeFileSync(path.join(targetDir, 'index.html'), redirectHtml, 'utf-8');
+      netlifyRedirectLines.push(`${fromRoute} ${toRoute} 301`);
+    }
+    if (netlifyRedirectLines.length > 0) {
+      fs.writeFileSync(path.join(this.config.outDir, '_redirects'), netlifyRedirectLines.join('\n'), 'utf-8');
+    }
 
     // 8. Generate SEO & GitHub Pages Files (.nojekyll, sitemap.xml, robots.txt, CNAME)
     fs.writeFileSync(path.join(this.config.outDir, '.nojekyll'), '', 'utf-8');

@@ -1414,6 +1414,8 @@
       initMermaidModal();
       initTabs();
       initLightbox();
+      initCompareSliders();
+      initCarousels();
       preloadAllVisibleLinks();
     }
 
@@ -2010,6 +2012,205 @@
     });
   }
 
+  // --- 1. Before / After Comparison Slider ---
+  function initCompareSliders() {
+    var sliders = document.querySelectorAll('.docboot-compare[data-docboot-compare="true"]');
+    sliders.forEach(function(slider) {
+      if (slider._docbootCompareInit) return;
+      slider._docbootCompareInit = true;
+
+      var container = slider.querySelector('.docboot-compare-container');
+      var beforeOverlay = slider.querySelector('.docboot-compare-before');
+      var handle = slider.querySelector('.docboot-compare-handle');
+      if (!container || !beforeOverlay || !handle) return;
+
+      var isDragging = false;
+
+      function updatePosition(clientX) {
+        var rect = container.getBoundingClientRect();
+        var x = clientX - rect.left;
+        var percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        beforeOverlay.style.width = percentage + '%';
+        handle.style.left = percentage + '%';
+        handle.setAttribute('aria-valuenow', Math.round(percentage));
+      }
+
+      function onPointerDown(e) {
+        isDragging = true;
+        updatePosition(e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX));
+        e.preventDefault();
+      }
+
+      function onPointerMove(e) {
+        if (!isDragging) return;
+        var clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+        if (clientX !== undefined) updatePosition(clientX);
+      }
+
+      function onPointerUp() {
+        isDragging = false;
+      }
+
+      container.addEventListener('mousedown', onPointerDown);
+      window.addEventListener('mousemove', onPointerMove);
+      window.addEventListener('mouseup', onPointerUp);
+
+      container.addEventListener('touchstart', onPointerDown, { passive: true });
+      window.addEventListener('touchmove', onPointerMove, { passive: true });
+      window.addEventListener('touchend', onPointerUp);
+
+      handle.addEventListener('keydown', function(e) {
+        var current = parseFloat(handle.getAttribute('aria-valuenow') || '50');
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+          var next = Math.max(0, current - 5);
+          beforeOverlay.style.width = next + '%';
+          handle.style.left = next + '%';
+          handle.setAttribute('aria-valuenow', next);
+          e.preventDefault();
+        } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+          var next = Math.min(100, current + 5);
+          beforeOverlay.style.width = next + '%';
+          handle.style.left = next + '%';
+          handle.setAttribute('aria-valuenow', next);
+          e.preventDefault();
+        }
+      });
+    });
+  }
+
+  // --- 2. Carousel Walkthrough ---
+  function initCarousels() {
+    var carousels = document.querySelectorAll('.docboot-carousel[data-docboot-carousel="true"]');
+    carousels.forEach(function(carousel) {
+      if (carousel._docbootCarouselInit) return;
+      carousel._docbootCarouselInit = true;
+
+      var slides = carousel.querySelectorAll('.docboot-carousel-slide');
+      var prevBtn = carousel.querySelector('.docboot-carousel-prev');
+      var nextBtn = carousel.querySelector('.docboot-carousel-next');
+      var counter = carousel.querySelector('.docboot-carousel-counter');
+      if (slides.length <= 1) return;
+
+      var currentIndex = 0;
+
+      function showSlide(index) {
+        if (index < 0) index = slides.length - 1;
+        if (index >= slides.length) index = 0;
+        currentIndex = index;
+
+        slides.forEach(function(s, idx) {
+          if (idx === currentIndex) {
+            s.classList.remove('hidden');
+            s.classList.add('block');
+            var img = s.querySelector('img');
+            if (img && img.getAttribute('loading') === 'lazy') {
+              img.setAttribute('loading', 'eager');
+            }
+          } else {
+            s.classList.remove('block');
+            s.classList.add('hidden');
+          }
+        });
+
+        if (counter) {
+          counter.textContent = (currentIndex + 1) + ' / ' + slides.length;
+        }
+      }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          showSlide(currentIndex - 1);
+        });
+      }
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          showSlide(currentIndex + 1);
+        });
+      }
+
+      var startX = 0;
+      carousel.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+      }, { passive: true });
+
+      carousel.addEventListener('touchend', function(e) {
+        var diffX = e.changedTouches[0].clientX - startX;
+        if (Math.abs(diffX) > 40) {
+          if (diffX > 0) showSlide(currentIndex - 1);
+          else showSlide(currentIndex + 1);
+        }
+      });
+    });
+  }
+
+  // --- 3. Collapsible Code Blocks ---
+  function initCollapsibleCodeBlocks() {
+    document.addEventListener('click', function(e) {
+      var expandBtn = e.target.closest('.docboot-code-expand-btn');
+      if (!expandBtn) return;
+      var codeblock = expandBtn.closest('.docboot-codeblock');
+      if (!codeblock) return;
+
+      var isCollapsed = codeblock.classList.contains('is-collapsed');
+      var nextState = !isCollapsed;
+
+      if (nextState) {
+        codeblock.classList.add('is-collapsed');
+        expandBtn.setAttribute('aria-expanded', 'false');
+        var textSpan = expandBtn.querySelector('.expand-text');
+        if (textSpan) textSpan.textContent = 'Show full example';
+        var svg = expandBtn.querySelector('svg');
+        if (svg) svg.classList.remove('rotate-180');
+      } else {
+        codeblock.classList.remove('is-collapsed');
+        expandBtn.setAttribute('aria-expanded', 'true');
+        var textSpan = expandBtn.querySelector('.expand-text');
+        if (textSpan) textSpan.textContent = 'Collapse example';
+        var svg = expandBtn.querySelector('svg');
+        if (svg) svg.classList.add('rotate-180');
+      }
+    });
+  }
+
+  // --- 4. Copy Page as Markdown ---
+  function initCopyPageMarkdown() {
+    document.addEventListener('click', function(e) {
+      var copyMdBtn = e.target.closest('.docboot-copy-page-md-btn');
+      if (!copyMdBtn) return;
+      var sourceUrl = copyMdBtn.getAttribute('data-source-url');
+      if (!sourceUrl) return;
+
+      var textSpan = copyMdBtn.querySelector('.copy-page-md-text');
+      var originalText = textSpan ? textSpan.textContent : 'Copy Markdown';
+
+      fetch(sourceUrl)
+        .then(function(res) {
+          if (!res.ok) throw new Error('Failed to fetch source');
+          return res.text();
+        })
+        .then(function(md) {
+          return navigator.clipboard.writeText(md);
+        })
+        .then(function() {
+          if (textSpan) textSpan.textContent = 'Copied Markdown!';
+          copyMdBtn.classList.add('text-emerald-400', 'border-emerald-500/50');
+          setTimeout(function() {
+            if (textSpan) textSpan.textContent = originalText;
+            copyMdBtn.classList.remove('text-emerald-400', 'border-emerald-500/50');
+          }, 2000);
+        })
+        .catch(function() {
+          if (textSpan) textSpan.textContent = 'Copy failed';
+          setTimeout(function() {
+            if (textSpan) textSpan.textContent = originalText;
+          }, 2000);
+        });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     initTheme();
     initCopyButtons();
@@ -2020,10 +2221,15 @@
     initMermaidModal();
     initTabs();
     initLightbox();
+    initCompareSliders();
+    initCarousels();
+    initCollapsibleCodeBlocks();
+    initCopyPageMarkdown();
     initSoftNavigation();
     initLiveReload();
     initScrollRestoration();
     initSidebarCollapsible();
   });
 })();
+
 

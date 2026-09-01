@@ -54,6 +54,55 @@ export function parseMarkdown(rawMarkdown, options = {}) {
   const base = options.base || options.config?.base || '/';
   const processedContent = processDirectives(content, { ...(options.config || {}), ...options });
 
+  // 1. Extract Footnote Definitions
+  const footnotesMap = new Map();
+  const rawLines = processedContent.split(/\r?\n/);
+  const remainingLines = [];
+  let curFnKey = null;
+  let curFnLines = [];
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i];
+    const defMatch = line.match(/^\[\^([^\]]+)\]:\s*(.*)$/);
+    if (defMatch) {
+      if (curFnKey) {
+        footnotesMap.set(curFnKey, curFnLines.join('\n').trim());
+      }
+      curFnKey = defMatch[1].trim();
+      curFnLines = [defMatch[2]];
+    } else if (curFnKey && (line.startsWith('    ') || line.startsWith('\t') || line.trim() === '')) {
+      curFnLines.push(line);
+    } else {
+      if (curFnKey) {
+        footnotesMap.set(curFnKey, curFnLines.join('\n').trim());
+        curFnKey = null;
+        curFnLines = [];
+      }
+      remainingLines.push(line);
+    }
+  }
+  if (curFnKey) {
+    footnotesMap.set(curFnKey, curFnLines.join('\n').trim());
+  }
+
+  const bodyWithoutFootnotes = remainingLines.join('\n');
+
+  // 2. Replace Inline Footnote References
+  const referencedFootnotes = [];
+  const bodyWithFootnoteRefs = bodyWithoutFootnotes.replace(/\[\^([^\]]+)\]/g, (match, key) => {
+    const trimmedKey = key.trim();
+    if (footnotesMap.has(trimmedKey)) {
+      let idx = referencedFootnotes.indexOf(trimmedKey);
+      if (idx === -1) {
+        referencedFootnotes.push(trimmedKey);
+        idx = referencedFootnotes.length - 1;
+      }
+      const num = idx + 1;
+      return `<sup class="docboot-footnote-ref" id="fnref-${escapeHtml(trimmedKey)}"><a href="#fn-${escapeHtml(trimmedKey)}" class="text-accent hover:underline font-mono text-[11px] font-bold px-0.5" aria-describedby="footnotes-label">[${num}]</a></sup>`;
+    }
+    return match;
+  });
+
   const tocCollector = new TocCollector();
   const headings = [];
 
@@ -301,7 +350,17 @@ export function parseMarkdown(rawMarkdown, options = {}) {
 
   markedInstance.use({ renderer });
 
-  const html = markedInstance.parse(processedContent);
+  let html = markedInstance.parse(bodyWithFootnoteRefs);
+
+  if (referencedFootnotes.length > 0) {
+    const fnListItems = referencedFootnotes.map((key, idx) => {
+      const noteContent = footnotesMap.get(key) || '';
+      return `<li id="fn-${escapeHtml(key)}" class="pl-1"><span>${markedInstance.parseInline(noteContent)}</span> <a href="#fnref-${escapeHtml(key)}" class="text-accent hover:underline font-mono text-xs ml-1" aria-label="Back to reference">↩</a></li>`;
+    }).join('\n');
+
+    html += `\n<section class="docboot-footnotes not-prose mt-12 pt-6 border-t border-border/60 text-xs text-muted-foreground" aria-labelledby="footnotes-label"><h2 id="footnotes-label" class="sr-only">Footnotes</h2><ol class="list-decimal pl-5 space-y-1.5">${fnListItems}</ol></section>`;
+  }
+
   const toc = tocCollector.getTocTree();
 
   const plainText = unescapeHtml(

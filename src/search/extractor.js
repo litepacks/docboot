@@ -121,12 +121,20 @@ export function extractSections(page, rawContent = '', frontmatter = {}) {
 
   // Build search records from sections with unique IDs
   const seenSlugs = new Set();
+  const aliases = Array.isArray(frontmatter.aliases) ? frontmatter.aliases.join(' ') : (frontmatter.aliases || '');
+  const tags = Array.isArray(frontmatter.tags) ? frontmatter.tags.join(' ') : (frontmatter.tags || '');
+  const extraSearchTerms = [aliases, tags, frontmatter.description || ''].filter(Boolean).join(' ');
+
   for (let i = 0; i < rawSections.length; i++) {
     const sec = rawSections[i];
     const sectionBody = sec.lines.join('\n');
-    const plainText = normalizeText(sectionBody);
+    let plainText = normalizeText(sectionBody);
 
     const isPageRoot = sec.level === 1 || !sec.slug;
+    if (isPageRoot && extraSearchTerms) {
+      plainText = `${extraSearchTerms} ${plainText}`.trim();
+    }
+
     let finalSlug = isPageRoot ? '' : sec.slug;
     if (isPageRoot && seenSlugs.has('')) {
       finalSlug = getSlug(sec.heading);
