@@ -701,4 +701,29 @@ html.filter-tritanopia {
   outline-offset: 2px;
 }
 
+/* In-Page Target Flash Highlight Animation */
+@keyframes docboot-target-pulse {
+  0% {
+    background-color: var(--accent-subtle, rgba(37, 99, 235, 0.25));
+    outline: 2px solid var(--accent, #2563eb);
+    outline-offset: 4px;
+  }
+  50% {
+    background-color: var(--accent-subtle, rgba(37, 99, 235, 0.15));
+    outline: 2px solid var(--accent, #2563eb);
+    outline-offset: 4px;
+  }
+  100% {
+    background-color: transparent;
+    outline: 2px solid transparent;
+    outline-offset: 4px;
+  }
+}
+
+.docboot-target-highlight {
+  animation: docboot-target-pulse 2.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 6px;
+}
+
+
 

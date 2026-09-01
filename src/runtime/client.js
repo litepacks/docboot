@@ -327,6 +327,11 @@
       });
     }
 
+    window.__docboot_applyTheme = applyTheme;
+    window.__docboot_applyPreset = applyPreset;
+    window.__docboot_applyFontSize = applyFontSize;
+    window.__docboot_applyFontFamily = applyFontFamily;
+
     applyTheme(currentTheme);
     applyPreset(currentPreset);
     applyFontSize(currentFontSize);
@@ -586,9 +591,103 @@
 
     var selectedIndex = -1;
     var currentResults = [];
+    var activeCategory = 'all';
+    var RECENT_SEARCHES_KEY = 'docboot_recent_searches';
+
+    var CATEGORIES = [
+      { id: 'all', label: 'All' },
+      { id: 'getting-started', label: 'Getting Started' },
+      { id: 'guide', label: 'Guide' },
+      { id: 'reference', label: 'Reference' }
+    ];
+
+    function renderCategoryTabs() {
+      var html = '<div class="flex items-center gap-1.5 px-3 py-2 border-b border-border/40 overflow-x-auto select-none no-scrollbar">';
+      for (var i = 0; i < CATEGORIES.length; i++) {
+        var cat = CATEGORIES[i];
+        var isActive = activeCategory === cat.id;
+        var btnClass = isActive
+          ? 'bg-accent text-accent-foreground font-semibold shadow-2xs ring-1 ring-accent/30'
+          : 'bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted font-medium';
+        html += '<button type="button" class="search-cat-tab text-xs px-2.5 py-1 rounded-full transition-all shrink-0 cursor-pointer ' + btnClass + '" data-category="' + cat.id + '">' + cat.label + '</button>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function renderPopularTopics() {
+      return '<div class="px-3 pt-2.5 pb-2 border-t border-border/40 select-none">' +
+        '<div class="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80 mb-2 flex items-center gap-1.5">' +
+          '<svg class="w-3.5 h-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>' +
+          '<span>Popular Topics</span>' +
+        '</div>' +
+        '<div class="flex flex-wrap gap-1.5">' +
+          '<button type="button" class="search-tag-btn text-xs px-2.5 py-1 rounded-md bg-muted/60 hover:bg-accent/15 hover:text-accent border border-border/60 transition-colors cursor-pointer" data-query="quick start">quick start</button>' +
+          '<button type="button" class="search-tag-btn text-xs px-2.5 py-1 rounded-md bg-muted/60 hover:bg-accent/15 hover:text-accent border border-border/60 transition-colors cursor-pointer" data-query="installation">installation</button>' +
+          '<button type="button" class="search-tag-btn text-xs px-2.5 py-1 rounded-md bg-muted/60 hover:bg-accent/15 hover:text-accent border border-border/60 transition-colors cursor-pointer" data-query="configuration">configuration</button>' +
+          '<button type="button" class="search-tag-btn text-xs px-2.5 py-1 rounded-md bg-muted/60 hover:bg-accent/15 hover:text-accent border border-border/60 transition-colors cursor-pointer" data-query="themes">themes</button>' +
+          '<button type="button" class="search-tag-btn text-xs px-2.5 py-1 rounded-md bg-muted/60 hover:bg-accent/15 hover:text-accent border border-border/60 transition-colors cursor-pointer" data-query="doctor">doctor</button>' +
+          '<button type="button" class="search-tag-btn text-xs px-2.5 py-1 rounded-md bg-muted/60 hover:bg-accent/15 hover:text-accent border border-border/60 transition-colors cursor-pointer" data-query="compare">compare slider</button>' +
+        '</div>' +
+      '</div>';
+    }
 
     function resetEmptyState() {
-      resultsContainer.innerHTML = '<div class="py-12 px-6 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-2 select-none"><svg class="w-8 h-8 text-muted-foreground/40 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span class="font-medium text-foreground/80">Search documentation</span><span class="text-xs text-muted-foreground/70">Type keywords, topics, or CLI commands</span></div>';
+      var recents = getRecentSearches();
+      var tabsHtml = renderCategoryTabs();
+      var popularHtml = renderPopularTopics();
+
+      if (recents.length > 0) {
+        var html = tabsHtml;
+        html += '<div class="py-2 px-1">';
+        html += '<div class="px-3 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between select-none">';
+        html += '<span class="flex items-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Recent Searches</span>';
+        html += '<button id="docboot-search-clear-recent" type="button" class="text-[11px] text-accent hover:underline lowercase font-medium cursor-pointer">clear</button>';
+        html += '</div>';
+        html += '<div class="space-y-1 mt-1">';
+
+        for (var i = 0; i < recents.length; i++) {
+          var r = recents[i];
+          var isSelected = (selectedIndex === i);
+          var activeClass = isSelected
+            ? 'bg-accent/12 border-accent/40 text-foreground ring-1 ring-accent/30 shadow-2xs'
+            : 'hover:bg-muted/50 text-foreground/90 border-transparent';
+
+          html += '<a href="' + resolveBase(r.route) + '" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '" class="search-result-item flex items-center justify-between p-2.5 rounded-lg border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
+          html += '<div class="flex-1 min-w-0 pr-3 flex items-center gap-2.5">';
+          html += '<svg class="w-4 h-4 text-muted-foreground/60 group-hover:text-accent shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+          html += '<div class="min-w-0">';
+          html += '<div class="font-medium text-foreground text-xs sm:text-sm truncate">' + escapeHtml(r.title) + '</div>';
+          if (r.section && r.section !== r.title) {
+            html += '<div class="text-[11px] text-muted-foreground truncate font-normal mt-0.5">' + escapeHtml(r.section) + '</div>';
+          }
+          html += '</div></div>';
+          html += '<svg class="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+          html += '</a>';
+        }
+        html += '</div>';
+        html += popularHtml;
+        html += '<div class="text-[11px] text-muted-foreground/60 mt-1 pt-2 border-t border-border/40 text-center flex items-center justify-center gap-1.5 select-none"><span>Tip: Type</span><kbd class="px-1.5 py-0.5 rounded bg-muted font-mono text-[10px] text-foreground font-semibold border border-border/80">&gt;</kbd><span>for Quick Actions or</span><kbd class="px-1.5 py-0.5 rounded bg-muted font-mono text-[10px] text-foreground font-semibold border border-border/80">@category</kbd></div>';
+        html += '</div>';
+
+        resultsContainer.innerHTML = html;
+        currentResults = recents;
+
+        var clearRecentBtn = document.getElementById('docboot-search-clear-recent');
+        if (clearRecentBtn) {
+          clearRecentBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            clearRecentSearches();
+            selectedIndex = -1;
+            currentResults = [];
+            resetEmptyState();
+          });
+        }
+      } else {
+        resultsContainer.innerHTML = tabsHtml + '<div class="py-8 px-6 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-2 select-none"><svg class="w-8 h-8 text-muted-foreground/40 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span class="font-medium text-foreground/80">Search documentation</span><div class="text-xs text-muted-foreground/70 flex items-center justify-center gap-1.5 mt-0.5"><span>Type keywords,</span><kbd class="px-1.5 py-0.5 rounded bg-muted font-mono text-[10px] text-foreground font-semibold border border-border/80">&gt;</kbd><span>for Actions, or</span><kbd class="px-1.5 py-0.5 rounded bg-muted font-mono text-[10px] text-foreground font-semibold border border-border/80">@category</kbd></div></div>' + popularHtml;
+        currentResults = [];
+      }
     }
 
     function openModal() {
@@ -596,6 +695,7 @@
       input.value = '';
       if (clearBtn) clearBtn.classList.add('hidden');
       selectedIndex = -1;
+      activeCategory = 'all';
       currentResults = [];
       resetEmptyState();
       trapModalFocus(modal, input);
@@ -664,46 +764,84 @@
         clearBtn.classList.toggle('hidden', !query);
       }
 
-      if (!q || q.length < minLen) {
-        resultsContainer.innerHTML = '<div class="py-12 px-6 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-2 select-none"><svg class="w-8 h-8 text-muted-foreground/40 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span class="font-medium text-foreground/80">Search documentation</span><span class="text-xs text-muted-foreground/70">Type at least ' + minLen + ' characters...</span></div>';
-        currentResults = [];
+      // 1. Command Mode (triggered by > prefix)
+      if (q.startsWith('>')) {
+        var cmdQuery = q.slice(1).trim().toLowerCase();
+        var matchingActions = COMMAND_ACTIONS.filter(function(action) {
+          if (!cmdQuery) return true;
+          return (
+            action.title.toLowerCase().includes(cmdQuery) ||
+            action.category.toLowerCase().includes(cmdQuery) ||
+            action.description.toLowerCase().includes(cmdQuery)
+          );
+        });
+
+        currentResults = matchingActions;
+        selectedIndex = 0;
+        renderResults(currentResults, q);
+        return;
+      }
+
+      // 2. Inline @category query parsing
+      var effectiveCategory = activeCategory;
+      var cleanQuery = q;
+      var atMatch = q.match(/^@([a-zA-Z0-9_-]+)(?:\s+(.*))?$/);
+      if (atMatch) {
+        effectiveCategory = atMatch[1].toLowerCase();
+        cleanQuery = (atMatch[2] || '').trim();
+      }
+
+      if (!cleanQuery && effectiveCategory === 'all') {
+        resetEmptyState();
         return;
       }
 
       if (!searchEngine) {
-        resultsContainer.innerHTML = '<div class="py-12 px-6 text-center text-sm text-muted-foreground flex items-center justify-center gap-2.5"><svg class="animate-spin w-4 h-4 text-accent" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> <span>Initializing search...</span></div>';
+        resultsContainer.innerHTML = renderCategoryTabs() + '<div class="py-12 px-6 text-center text-sm text-muted-foreground flex items-center justify-center gap-2.5"><svg class="animate-spin w-4 h-4 text-accent" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> <span>Initializing search...</span></div>';
         loadSearch().then(function(engine) {
           if (engine && input.value.trim() === q) {
-            currentResults = engine.search(q);
+            currentResults = engine.search(cleanQuery || effectiveCategory, { category: effectiveCategory });
             selectedIndex = 0;
-            renderResults(currentResults, q);
+            renderResults(currentResults, cleanQuery || effectiveCategory);
           }
         });
         return;
       }
 
-      currentResults = searchEngine.search(q);
+      currentResults = searchEngine.search(cleanQuery || effectiveCategory, { category: effectiveCategory });
       selectedIndex = 0;
-      renderResults(currentResults, q);
+      renderResults(currentResults, cleanQuery || effectiveCategory);
     }
 
     function renderResults(results, query) {
+      var isCommandMode = query.trim().startsWith('>');
       var minLen = (window.__EUIX_SEARCH_CONFIG__ && window.__EUIX_SEARCH_CONFIG__.minQueryLength) || 2;
 
-      if (!query || query.length < minLen) {
+      if (!query && activeCategory === 'all' && !isCommandMode) {
         resetEmptyState();
         return;
       }
 
+      var tabsHtml = !isCommandMode ? renderCategoryTabs() : '';
+
       if (results.length === 0) {
-        resultsContainer.innerHTML = '<div class="py-12 px-6 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-2 select-none"><svg class="w-8 h-8 text-muted-foreground/40 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="font-medium text-foreground">No results found</span><span class="text-xs text-muted-foreground/70">No documents matched "<span class="font-medium text-foreground/90">' + escapeHtml(query) + '</span>"</span></div>';
-        announceA11y('No matching documents found');
+        var suggestions = (!isCommandMode && searchEngine && typeof searchEngine.suggest === 'function')
+          ? searchEngine.suggest(query, 2)
+          : [];
+
+        var suggestionHtml = '';
+        if (suggestions.length > 0) {
+          suggestionHtml = '<div class="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-xs text-accent"><span class="text-muted-foreground">Did you mean:</span><button type="button" class="search-suggestion-btn font-semibold hover:underline cursor-pointer" data-suggestion="' + escapeHtml(suggestions[0].suggestion) + '">' + escapeHtml(suggestions[0].suggestion) + '</button></div>';
+        }
+
+        resultsContainer.innerHTML = tabsHtml + '<div class="py-10 px-6 text-center text-sm text-muted-foreground flex flex-col items-center justify-center gap-2 select-none"><svg class="w-8 h-8 text-muted-foreground/40 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="font-medium text-foreground">No ' + (isCommandMode ? 'actions' : 'documents') + ' found</span><span class="text-xs text-muted-foreground/70">No results matched "<span class="font-medium text-foreground/90">' + escapeHtml(query) + '</span>"</span>' + suggestionHtml + '</div>';
+        announceA11y('No matching results found');
         return;
       }
 
-      announceA11y(results.length + ' search result' + (results.length === 1 ? '' : 's') + ' found');
+      announceA11y(results.length + ' result' + (results.length === 1 ? '' : 's') + ' found');
 
-      var html = '<div class="p-1.5 space-y-1">';
+      var html = tabsHtml + '<div class="p-1.5 space-y-1">';
       for (var i = 0; i < results.length; i++) {
         var item = results[i];
         var isSelected = i === selectedIndex;
@@ -711,23 +849,103 @@
           ? 'bg-accent/12 border-accent/40 text-foreground ring-1 ring-accent/30 shadow-2xs'
           : 'hover:bg-muted/50 text-foreground/90 border-transparent';
 
-        html += '<a href="' + resolveBase(item.route) + '" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '" class="search-result-item flex items-center justify-between p-3 rounded-lg border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
-        html += '<div class="flex-1 min-w-0 pr-3">';
-        html += '<div class="font-medium text-foreground truncate">' + escapeHtml(item.title) + '</div>';
-        if (item.section) {
-          html += '<div class="text-xs text-muted-foreground truncate mt-0.5 font-normal flex items-center gap-1"><span class="text-accent/80 font-mono">#</span> ' + escapeHtml(item.section) + '</div>';
+        if (item.isAction) {
+          // Render Command Palette Action Item
+          html += '<button type="button" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '" class="search-result-item w-full text-left flex items-center justify-between p-2.5 rounded-lg border ' + activeClass + ' transition-all block text-sm group cursor-pointer" data-index="' + i + '">';
+          html += '<div class="flex items-center gap-3 min-w-0 pr-3">';
+          html += '<div class="w-7 h-7 rounded-md bg-accent/15 border border-accent/25 flex items-center justify-center shrink-0">' + item.icon + '</div>';
+          html += '<div class="min-w-0">';
+          html += '<div class="font-medium text-foreground truncate flex items-center gap-2"><span>' + highlightText(item.title, query.replace(/^>/, '')) + '</span><span class="text-[10px] uppercase font-semibold px-1.5 py-0.2 rounded bg-muted/80 text-muted-foreground border border-border/60">' + escapeHtml(item.badge || 'Action') + '</span></div>';
+          html += '<div class="text-xs text-muted-foreground/80 truncate mt-0.5">' + escapeHtml(item.description) + '</div>';
+          html += '</div></div>';
+          html += '<kbd class="hidden sm:inline-block px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono text-[10px] border border-border/80 shrink-0">↵</kbd>';
+          html += '</button>';
+        } else {
+          // Render Document Search Result with Anchor Breadcrumb
+          html += '<a href="' + resolveBase(item.route) + '" role="option" aria-selected="' + (isSelected ? 'true' : 'false') + '" class="search-result-item flex items-center justify-between p-3 rounded-lg border ' + activeClass + ' transition-all block text-sm group" data-index="' + i + '">';
+          html += '<div class="flex-1 min-w-0 pr-3">';
+          html += '<div class="font-medium text-foreground truncate flex items-center gap-2"><span>' + highlightText(item.title, query) + '</span>';
+          if (item.route && item.route.includes('#')) {
+            html += '<span class="text-[10px] font-mono text-accent/80 font-medium px-1 rounded bg-accent/10 border border-accent/20">#' + escapeHtml(item.route.split('#')[1]) + '</span>';
+          }
+          html += '</div>';
+          if (item.section) {
+            html += '<div class="text-xs text-muted-foreground truncate mt-0.5 font-normal flex items-center gap-1"><span class="text-accent/80 font-mono">#</span> ' + highlightText(item.section, query) + '</div>';
+          }
+          if (item.snippet) {
+            html += '<div class="text-xs text-muted-foreground/80 truncate mt-1 leading-relaxed">' + highlightText(item.snippet, query) + '</div>';
+          }
+          html += '</div>';
+          html += '<svg class="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
+          html += '</a>';
         }
-        if (item.snippet) {
-          html += '<div class="text-xs text-muted-foreground/80 truncate mt-1">' + escapeHtml(item.snippet) + '</div>';
-        }
-        html += '</div>';
-        html += '<svg class="w-4 h-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>';
-        html += '</a>';
       }
       html += '</div>';
 
       resultsContainer.innerHTML = html;
     }
+
+    resultsContainer.addEventListener('click', function(e) {
+      // 1. Category Tab Click
+      var tabEl = e.target.closest('.search-cat-tab');
+      if (tabEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        var cat = tabEl.getAttribute('data-category');
+        if (cat) {
+          activeCategory = cat;
+          performSearch(input.value);
+        }
+        return;
+      }
+
+      // 2. Popular Query Tag Click
+      var tagEl = e.target.closest('.search-tag-btn');
+      if (tagEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        var tagQuery = tagEl.getAttribute('data-query');
+        if (tagQuery) {
+          input.value = tagQuery;
+          performSearch(tagQuery);
+          input.focus();
+        }
+        return;
+      }
+
+      // 3. "Did you mean" Suggestion Click
+      var suggEl = e.target.closest('.search-suggestion-btn');
+      if (suggEl) {
+        e.preventDefault();
+        e.stopPropagation();
+        var suggText = suggEl.getAttribute('data-suggestion');
+        if (suggText) {
+          input.value = suggText;
+          performSearch(suggText);
+          input.focus();
+        }
+        return;
+      }
+
+      // 4. Search Result Item Click
+      var itemEl = e.target.closest('.search-result-item');
+      if (itemEl) {
+        var idx = parseInt(itemEl.getAttribute('data-index'), 10);
+        if (!isNaN(idx) && currentResults[idx]) {
+          var targetItem = currentResults[idx];
+          if (targetItem.isAction && typeof targetItem.run === 'function') {
+            targetItem.run();
+            closeModal();
+          } else {
+            saveRecentSearch(targetItem);
+            if (targetItem.route && targetItem.route.includes('#')) {
+              var targetHash = '#' + targetItem.route.split('#')[1];
+              highlightAnchorTarget(targetHash);
+            }
+          }
+        }
+      }
+    });
 
     input.addEventListener('input', function() {
       performSearch(input.value);
@@ -746,15 +964,73 @@
           selectedIndex = (selectedIndex - 1 + currentResults.length) % currentResults.length;
           renderResults(currentResults, input.value);
         }
+      } else if (e.key === 'Tab') {
+        // Cycle through category tabs on Tab key if not selecting an item
+        var suggBtn = resultsContainer.querySelector('.search-suggestion-btn');
+        if (suggBtn) {
+          e.preventDefault();
+          var sugg = suggBtn.getAttribute('data-suggestion');
+          if (sugg) {
+            input.value = sugg;
+            performSearch(sugg);
+          }
+        } else if (!e.shiftKey) {
+          e.preventDefault();
+          var catIds = CATEGORIES.map(function(c) { return c.id; });
+          var curIdx = catIds.indexOf(activeCategory);
+          var nextIdx = (curIdx + 1) % catIds.length;
+          activeCategory = catIds[nextIdx];
+          performSearch(input.value);
+        }
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (currentResults.length > 0 && currentResults[selectedIndex]) {
-          var targetRoute = currentResults[selectedIndex].route;
-          closeModal();
-          navigateTo(targetRoute);
+          var targetItem = currentResults[selectedIndex];
+          if (targetItem.isAction && typeof targetItem.run === 'function') {
+            targetItem.run();
+            closeModal();
+          } else {
+            saveRecentSearch(targetItem);
+            closeModal();
+            navigateTo(targetItem.route);
+          }
         }
       }
     });
+
+    function navigateTo(route) {
+      if (!route) return;
+      var resolved = resolveBase(route);
+      if (route.includes('#')) {
+        var hash = '#' + route.split('#')[1];
+        var path = route.split('#')[0];
+        var curPath = window.location.pathname.replace(/\/$/, '');
+        var targetPath = resolveBase(path).replace(/\/$/, '');
+        if (curPath === targetPath || !path) {
+          highlightAnchorTarget(hash);
+          try {
+            history.pushState(null, '', resolved);
+          } catch (_) {}
+          return;
+        }
+      }
+      window.location.href = resolved;
+    }
+
+    function highlightAnchorTarget(hash) {
+      if (!hash) return;
+      var targetId = decodeURIComponent(hash.replace(/^#/, ''));
+      var targetEl = document.getElementById(targetId) || document.querySelector('[name="' + targetId + '"]');
+      if (targetEl) {
+        targetEl.classList.remove('docboot-target-highlight');
+        void targetEl.offsetWidth; // trigger reflow
+        targetEl.classList.add('docboot-target-highlight');
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(function() {
+          targetEl.classList.remove('docboot-target-highlight');
+        }, 2400);
+      }
+    }
 
     function escapeHtml(str) {
       return (str || '')

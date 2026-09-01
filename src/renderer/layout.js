@@ -379,11 +379,14 @@ export function renderLayout({
         </div>
       </div>
       <div class="px-4 py-2.5 border-t border-border bg-muted/30 flex items-center justify-between text-[11px] text-muted-foreground select-none">
-        <div class="flex items-center gap-3">
-          <span><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">↑</kbd> <kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">↓</kbd> to navigate</span>
-          <span><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">↵</kbd> to select</span>
+        <div class="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+          <span><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">↑</kbd> <kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">↓</kbd> navigate</span>
+          <span><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">↵</kbd> select</span>
+          <span class="hidden sm:inline"><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">tab</kbd> category</span>
+          <span class="hidden sm:inline"><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">&gt;</kbd> actions</span>
+          <span class="hidden md:inline"><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">@</kbd> filter</span>
         </div>
-        <span><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">ESC</kbd> to close</span>
+        <span><kbd class="px-1.5 py-0.5 rounded border border-border bg-card-bg shadow-2xs">ESC</kbd> close</span>
       </div>
     </div>
   </div>

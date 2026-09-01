@@ -1,21 +1,67 @@
 import { slugify } from '../markdown/toc.js';
-import { unescapeHtml } from '../markdown/highlighter.js';
+import { unescapeHtml, escapeHtml } from '../markdown/highlighter.js';
 
 /**
- * Normalizes text by removing markdown symbols, links, code syntax, HTML entities and excess whitespace.
+ * Extracts distinct code identifiers, CLI flags, and symbols from markdown text.
+ * @param {string} text 
+ * @returns {string} Space-separated unique symbol tokens
+ */
+export function extractSymbols(text = '') {
+  if (!text) return '';
+  const symbols = new Set();
+
+  // 1. Inline code backticks: `foo()`, `docboot build`, `--stale`
+  const inlineCodeRegex = /`([^`\n]+)`/g;
+  let match;
+  while ((match = inlineCodeRegex.exec(text)) !== null) {
+    const code = match[1].trim();
+    if (code && code.length >= 2 && code.length <= 80) {
+      symbols.add(code);
+      // Also split multi-word inline code (e.g. `docboot doctor --stale`)
+      code.split(/\s+/).forEach(w => {
+        if (w.length >= 2) symbols.add(w);
+      });
+    }
+  }
+
+  // 2. CLI flags (--flag, -f, --flag=value)
+  const flagRegex = /(?:^|\s)(--[a-zA-Z0-9_-]+(?:=[a-zA-Z0-9_-]+)?|-[a-zA-Z])(?:\s|$|[.,:;])/g;
+  while ((match = flagRegex.exec(text)) !== null) {
+    const flag = match[1].trim();
+    if (flag) symbols.add(flag);
+  }
+
+  // 3. Code block identifiers (function names, config keys, imports)
+  const codeBlockRegex = /```(?:[a-zA-Z0-9_-]+)?\s*([\s\S]*?)```/g;
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    const block = match[1];
+    const words = block.match(/[a-zA-Z0-9_$-]{2,}/g) || [];
+    for (const w of words) {
+      if (w.length >= 3 && w.length <= 40) {
+        symbols.add(w);
+      }
+    }
+  }
+
+  return Array.from(symbols).slice(0, 50).join(' ');
+}
+
+/**
+ * Normalizes text by removing markdown symbols, links, HTML entities and excess whitespace,
+ * while retaining searchable code keywords.
  * @param {string} text 
  * @returns {string} Clean plain text
  */
 export function normalizeText(text = '') {
   return unescapeHtml(text)
-    .replace(/```[\s\S]*?```/g, ' ')                // Code blocks
-    .replace(/`([^`]+)`/g, '$1')                     // Inline code
-    .replace(/:::[a-zA-Z0-9_-]*(?:[^\r\n]*)?/g, ' ') // Callout markers
-    .replace(/<[^>]*>/g, ' ')                        // HTML tags
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')         // Links [text](url) -> text
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')         // Images
-    .replace(/[#*_~`>-]/g, ' ')                      // Markdown formatting chars
-    .replace(/\s+/g, ' ')                            // Collapse whitespace
+    .replace(/```[a-zA-Z0-9_-]*\s*([\s\S]*?)```/g, ' $1 ') // Retain words inside code blocks
+    .replace(/`([^`]+)`/g, ' $1 ')                         // Retain inline code words
+    .replace(/:::[a-zA-Z0-9_-]*(?:[^\r\n]*)?/g, ' ')       // Directive markers
+    .replace(/<[^>]*>/g, ' ')                              // HTML tags
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, ' $1 ')             // Links [text](url) -> text
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, ' $1 ')             // Images
+    .replace(/[#*_~`>-]/g, ' ')                            // Markdown formatting chars
+    .replace(/\s+/g, ' ')                                  // Collapse whitespace
     .trim();
 }
 
@@ -36,6 +82,101 @@ export function createSnippet(text = '', maxLength = 130) {
     return truncated.slice(0, lastSpace) + '...';
   }
   return truncated + '...';
+}
+
+/**
+ * Creates a context-aware dynamic snippet centered around matching search terms.
+ * @param {string} text Full section plain text
+ * @param {string} query Search query string
+ * @param {number} maxLength Target snippet length (default: 130)
+ * @returns {string} Contextual snippet with leading/trailing ellipses
+ */
+export function createDynamicSnippet(text = '', query = '', maxLength = 130) {
+  const clean = normalizeText(text);
+  if (!clean) return '';
+  if (!query || clean.length <= maxLength) {
+    return createSnippet(clean, maxLength);
+  }
+
+  // Extract query keywords (length >= 2)
+  const tokens = query
+    .toLowerCase()
+    .split(/\s+/)
+    .map(t => t.replace(/[^a-zA-Z0-9_-]/g, ''))
+    .filter(t => t.length >= 2);
+
+  if (tokens.length === 0) {
+    return createSnippet(clean, maxLength);
+  }
+
+  const lowerText = clean.toLowerCase();
+  let firstMatchIndex = -1;
+  let matchedTokenLen = 0;
+
+  for (const token of tokens) {
+    const idx = lowerText.indexOf(token);
+    if (idx !== -1 && (firstMatchIndex === -1 || idx < firstMatchIndex)) {
+      firstMatchIndex = idx;
+      matchedTokenLen = token.length;
+    }
+  }
+
+  if (firstMatchIndex === -1) {
+    return createSnippet(clean, maxLength);
+  }
+
+  // Center window around match
+  const leadChars = 35;
+  let start = Math.max(0, firstMatchIndex - leadChars);
+  let end = Math.min(clean.length, start + maxLength);
+
+  // Adjust to clean word boundaries
+  if (start > 0) {
+    const spaceIndex = clean.indexOf(' ', start);
+    if (spaceIndex !== -1 && spaceIndex < firstMatchIndex) {
+      start = spaceIndex + 1;
+    }
+  }
+
+  if (end < clean.length) {
+    const lastSpace = clean.lastIndexOf(' ', end);
+    if (lastSpace > start + 40) {
+      end = lastSpace;
+    }
+  }
+
+  let snippet = clean.slice(start, end).trim();
+  if (start > 0) snippet = '...' + snippet;
+  if (end < clean.length) snippet = snippet + '...';
+
+  return snippet;
+}
+
+/**
+ * Safely wraps matching query tokens in <mark> tags without breaking HTML escaping.
+ * @param {string} text Plain text to highlight
+ * @param {string} query Search query
+ * @param {string} highlightClass CSS classes for <mark>
+ * @returns {string} HTML-escaped text with <mark> tags
+ */
+export function highlightMatches(text = '', query = '', highlightClass = 'bg-accent/20 text-accent font-semibold px-0.5 rounded-xs') {
+  if (!text) return '';
+  const escapedText = escapeHtml(text);
+  if (!query) return escapedText;
+
+  const tokens = query
+    .trim()
+    .split(/\s+/)
+    .map(t => t.replace(/[^a-zA-Z0-9_-]/g, ''))
+    .filter(t => t.length >= 2);
+
+  if (tokens.length === 0) return escapedText;
+
+  // Build regex for all tokens escaping special chars
+  const escapedTokens = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const regex = new RegExp(`(${escapedTokens.join('|')})`, 'gi');
+
+  return escapedText.replace(regex, `<mark class="${highlightClass}">$1</mark>`);
 }
 
 /**
@@ -107,11 +248,13 @@ export function extractSections(page, rawContent = '', frontmatter = {}) {
   // If no sections produced, fallback to single root record
   if (rawSections.length === 0) {
     const plainText = normalizeText(contentWithoutFrontmatter);
+    const symbols = extractSymbols(contentWithoutFrontmatter);
     records.push({
       id: `${baseRoute}::0`,
       title: pageTitle,
       section: category ? `${category} › ${pageTitle}` : pageTitle,
       headings: '',
+      symbols,
       route: baseRoute,
       text: plainText,
       snippet: createSnippet(plainText)
@@ -127,8 +270,9 @@ export function extractSections(page, rawContent = '', frontmatter = {}) {
 
   for (let i = 0; i < rawSections.length; i++) {
     const sec = rawSections[i];
-    const sectionBody = sec.lines.join('\n');
-    let plainText = normalizeText(sectionBody);
+    const rawSectionBody = sec.lines.join('\n');
+    let plainText = normalizeText(rawSectionBody);
+    const symbols = extractSymbols(rawSectionBody);
 
     const isPageRoot = sec.level === 1 || !sec.slug;
     if (isPageRoot && extraSearchTerms) {
@@ -157,6 +301,7 @@ export function extractSections(page, rawContent = '', frontmatter = {}) {
       title: pageTitle,
       section: sectionBreadcrumb,
       headings: isPageRoot ? '' : sec.heading,
+      symbols,
       route,
       text: plainText || sec.heading,
       snippet: createSnippet(plainText) || sec.heading
