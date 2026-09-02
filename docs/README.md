@@ -126,6 +126,7 @@ The output in `dist/` is pure static HTML, CSS, and lightweight client assets re
   - [Analytics Integration](/guide/analytics) — Privacy-first analytics setup
 
 - **Tooling**:
+  - [AI Agents & LLM Guidelines](/tooling/agents) — Context guidelines and architecture for LLM pair-programming
   - [Docboot Doctor](/tooling/doctor) — Diagnostics for links, images, and routes
   - [Docboot Stats](/tooling/stats) — Documentation metrics and bundle analysis
   - [Incremental Build Cache](/tooling/build-cache) — Cache mechanics and invalidation

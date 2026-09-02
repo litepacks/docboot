@@ -1,5 +1,5 @@
 // Docboot Stale-While-Revalidate Service Worker with Auto-Update Support
-const CACHE_NAME = 'docboot-cache-mtj6j4ec';
+const CACHE_NAME = 'docboot-cache-mtk1bqvo';
 const PRECACHE_URLS = [
   "/docboot/",
   "/docboot/assets/docs.css",
