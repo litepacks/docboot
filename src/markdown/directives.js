@@ -325,6 +325,16 @@ function transformDirectiveBlock(name, rawArgs, body, config) {
     return renderSandbox(args, body, config);
   }
 
+  // 48. Interactive JSON Tree Viewer (:::json, :::jsontree, :::json-tree)
+  if (type === 'json' || type === 'jsontree' || type === 'json-tree') {
+    return renderJsonTree(args, body, config);
+  }
+
+  // 49. Dedicated Copy Primitive (:::copy, :::snippet, :::clipboard)
+  if (type === 'copy' || type === 'snippet' || type === 'clipboard') {
+    return renderCopyPrimitive(args, body, config);
+  }
+
   // Unknown directive - leave unchanged
   return `:::${name}${rawArgs ? ' ' + rawArgs : ''}\n${body}\n:::`;
 }
@@ -385,12 +395,15 @@ export function processDirectives(markdown, config = {}) {
     if (!inDirective) {
       // Inline directives replacement on non-block lines
       let transformedLine = line;
-      if (transformedLine.includes(':::badge') || transformedLine.includes(':::since')) {
+      if (transformedLine.includes(':::badge') || transformedLine.includes(':::since') || /:::copy\s+[^:\r\n]+:::/.test(transformedLine)) {
         transformedLine = transformedLine.replace(/:::badge(?:\s+([a-zA-Z0-9_-]+))?/g, (m, status) => {
           return renderBadge({ _positional: [status || 'stable'] }, '', config);
         });
         transformedLine = transformedLine.replace(/:::since(?:\s+([a-zA-Z0-9_.-]+))?/g, (m, ver) => {
           return renderSince({ _positional: [ver || '0.1.0'] }, '', config);
+        });
+        transformedLine = transformedLine.replace(/:::copy\s+([^:\r\n]+):::/g, (m, snippet) => {
+          return renderCopyPrimitive({ _positional: [(snippet || '').trim()], inline: true }, '', config);
         });
       }
 
@@ -3288,6 +3301,166 @@ function renderSandbox(args, body, config) {
     allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; hid; microphone; midi; payment; usb; vr; xr-spatial-tracking"
     sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
   ></iframe>
+</div>
+`);
+}
+
+/**
+ * 48. Interactive JSON Tree Viewer Primitive (:::json, :::jsontree, :::json-tree)
+ */
+function renderJsonTree(args, body, config) {
+  const title = args.title || args._positional?.[0] || 'JSON Tree';
+  const defaultExpandLevel = args.expandLevel !== undefined ? parseInt(args.expandLevel, 10) : (args.collapsed === 'true' || args.collapsed === true ? 0 : 2);
+
+  let data = null;
+  let rawJson = body.trim();
+  let parseError = null;
+
+  try {
+    data = JSON.parse(rawJson);
+  } catch (e) {
+    try {
+      data = yaml.parse(rawJson);
+      rawJson = JSON.stringify(data, null, 2);
+    } catch (yamlErr) {
+      parseError = e.message;
+    }
+  }
+
+  if (parseError || data === null || data === undefined) {
+    return unindent(`
+<div class="docboot-json-tree not-prose my-6 rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 font-mono text-xs text-rose-500">
+  <div class="font-bold flex items-center gap-2 mb-1">
+    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Invalid JSON Payload
+  </div>
+  <div class="text-[11px] opacity-90">${escapeHtml(parseError || 'Could not parse JSON body')}</div>
+  <pre class="mt-2 p-2 bg-black/30 rounded overflow-x-auto text-[11px] text-foreground">${escapeHtml(body)}</pre>
+</div>
+`);
+  }
+
+  function renderNode(value, key, depth = 0, isLast = true) {
+    const isObject = value !== null && typeof value === 'object' && !Array.isArray(value);
+    const isArray = Array.isArray(value);
+    const isOpen = depth < defaultExpandLevel ? 'open' : '';
+    const keyPrefix = key !== null && key !== undefined ? `<span class="docboot-json-key font-mono text-xs font-semibold text-accent dark:text-accent">${escapeHtml(JSON.stringify(key))}:</span> ` : '';
+
+    if (isObject) {
+      const keys = Object.keys(value);
+      if (keys.length === 0) {
+        return `<div class="docboot-json-row py-0.5 leading-relaxed font-mono text-xs pl-4">${keyPrefix}<span class="text-muted-foreground font-mono">{}</span>${isLast ? '' : '<span class="text-muted-foreground">,</span>'}</div>`;
+      }
+      return `
+<details class="docboot-json-node docboot-json-object group" ${isOpen}>
+  <summary class="docboot-json-summary flex items-center gap-1.5 py-0.5 cursor-pointer hover:bg-muted/40 rounded px-1 -ml-1 transition-colors select-none">
+    <svg class="w-3.5 h-3.5 text-muted-foreground group-open:rotate-90 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    ${keyPrefix}<span class="text-xs font-mono text-muted-foreground font-normal">{ <span class="text-[10px] px-1 py-0.2 rounded bg-muted font-medium text-foreground">${keys.length} keys</span> }</span>
+  </summary>
+  <div class="docboot-json-children pl-4 border-l border-border/60 ml-2 my-0.5 space-y-0.5">
+    ${keys.map((k, idx) => renderNode(value[k], k, depth + 1, idx === keys.length - 1)).join('')}
+  </div>
+  <div class="text-xs font-mono text-muted-foreground pl-4">}${isLast ? '' : ','}</div>
+</details>`;
+    }
+
+    if (isArray) {
+      if (value.length === 0) {
+        return `<div class="docboot-json-row py-0.5 leading-relaxed font-mono text-xs pl-4">${keyPrefix}<span class="text-muted-foreground font-mono">[]</span>${isLast ? '' : '<span class="text-muted-foreground">,</span>'}</div>`;
+      }
+      return `
+<details class="docboot-json-node docboot-json-array group" ${isOpen}>
+  <summary class="docboot-json-summary flex items-center gap-1.5 py-0.5 cursor-pointer hover:bg-muted/40 rounded px-1 -ml-1 transition-colors select-none">
+    <svg class="w-3.5 h-3.5 text-muted-foreground group-open:rotate-90 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+    ${keyPrefix}<span class="text-xs font-mono text-muted-foreground font-normal">Array(<span class="text-[10px] px-1 py-0.2 rounded bg-muted font-medium text-foreground">${value.length}</span>) [</span>
+  </summary>
+  <div class="docboot-json-children pl-4 border-l border-border/60 ml-2 my-0.5 space-y-0.5">
+    ${value.map((item, idx) => renderNode(item, null, depth + 1, idx === value.length - 1)).join('')}
+  </div>
+  <div class="text-xs font-mono text-muted-foreground pl-4">]${isLast ? '' : ','}</div>
+</details>`;
+    }
+
+    // Primitive values
+    let valHtml = '';
+    if (typeof value === 'string') {
+      valHtml = `<span class="docboot-json-string text-emerald-600 dark:text-emerald-400 font-mono">${escapeHtml(JSON.stringify(value))}</span>`;
+    } else if (typeof value === 'number') {
+      valHtml = `<span class="docboot-json-number text-cyan-600 dark:text-cyan-400 font-mono font-semibold">${value}</span>`;
+    } else if (typeof value === 'boolean') {
+      valHtml = `<span class="docboot-json-boolean text-purple-600 dark:text-purple-400 font-mono font-bold">${value}</span>`;
+    } else if (value === null) {
+      valHtml = `<span class="docboot-json-null text-muted-foreground font-mono italic font-semibold">null</span>`;
+    } else {
+      valHtml = `<span class="text-muted-foreground font-mono">${escapeHtml(String(value))}</span>`;
+    }
+
+    return `<div class="docboot-json-row py-0.5 leading-relaxed font-mono text-xs flex items-baseline gap-1 pl-4 hover:bg-muted/25 rounded">${keyPrefix}${valHtml}${isLast ? '' : '<span class="text-muted-foreground">,</span>'}</div>`;
+  }
+
+  const treeContent = renderNode(data, null, 0, true);
+  const prettyJson = JSON.stringify(data, null, 2);
+
+  return unindent(`
+<div class="docboot-json-tree not-prose my-6 rounded-2xl border border-border bg-card-bg/70 shadow-xs overflow-hidden" data-docboot-json-tree="true">
+  <!-- Header Bar -->
+  <div class="flex items-center justify-between gap-3 px-4 py-2.5 bg-muted/30 border-b border-border text-xs">
+    <div class="flex items-center gap-2">
+      <svg class="w-4 h-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="8 10 12 14 16 10"/></svg>
+      <span class="font-semibold text-foreground">${escapeHtml(title)}</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="button" class="docboot-json-toggle-btn px-2 py-0.5 rounded text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" data-action="expand">Expand all</button>
+      <span class="text-border">|</span>
+      <button type="button" class="docboot-json-toggle-btn px-2 py-0.5 rounded text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer" data-action="collapse">Collapse all</button>
+      <span class="text-border">|</span>
+      <button type="button" class="docboot-copy-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-muted hover:bg-accent/15 text-muted-foreground hover:text-accent border border-border/40 transition-all cursor-pointer shadow-2xs" data-code="${escapeHtml(prettyJson)}" aria-label="Copy Raw JSON">
+        <svg class="copy-icon w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        <svg class="copied-icon w-3 h-3 text-emerald-500 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20 6L9 17l-5-5"/></svg>
+        <span class="copy-text">Copy JSON</span>
+      </button>
+    </div>
+  </div>
+  <!-- Tree Container -->
+  <div class="p-4 overflow-x-auto text-xs font-mono bg-card-bg/40 max-h-[550px] overflow-y-auto">
+    ${treeContent}
+  </div>
+</div>
+`);
+}
+
+/**
+ * 49. Dedicated Copy Primitive (:::copy, :::clipboard, :::snippet)
+ */
+function renderCopyPrimitive(args, body, config) {
+  let parsed = {};
+  if (body.trim().startsWith('{') || body.trim().includes(':')) {
+    try {
+      parsed = yaml.parse(body) || {};
+    } catch (_) {}
+  }
+
+  const text = (args.text || args.code || parsed.text || parsed.code || args._positional?.[0] || body.trim() || '').trim();
+  const label = args.label || args.title || parsed.label || parsed.title || '';
+  const prefix = args.prefix || parsed.prefix || '';
+  const inline = Boolean(args.inline);
+
+  if (inline) {
+    return `<span class="docboot-copy-inline not-prose inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-border bg-muted/50 font-mono text-xs text-foreground group"><code class="text-xs text-foreground font-medium">${escapeHtml(text)}</code><button type="button" class="docboot-copy-btn p-0.5 rounded text-muted-foreground hover:text-accent transition-colors cursor-pointer inline-flex items-center" data-code="${escapeHtml(text)}" aria-label="Copy ${escapeHtml(text)}"><svg class="copy-icon w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg><svg class="copied-icon w-3.5 h-3.5 text-emerald-500 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20 6L9 17l-5-5"/></svg></button></span>`;
+  }
+
+  return unindent(`
+<div class="docboot-copy-block not-prose my-4 flex items-center justify-between gap-3 p-3 sm:px-4 rounded-xl border border-border bg-card-bg/80 shadow-xs font-mono text-sm group hover:border-accent/40 transition-colors">
+  <div class="flex items-center gap-2.5 overflow-x-auto py-0.5">
+    ${prefix ? `<span class="text-muted-foreground select-none text-xs font-semibold px-2 py-0.5 rounded-md bg-muted/80 border border-border/40">${escapeHtml(prefix)}</span>` : ''}
+    ${label ? `<span class="text-xs font-sans font-semibold text-muted-foreground mr-1">${escapeHtml(label)}:</span>` : ''}
+    <span class="text-foreground select-all text-xs sm:text-sm font-medium whitespace-nowrap">${escapeHtml(text)}</span>
+  </div>
+  <button type="button" class="docboot-copy-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted hover:bg-accent/15 text-muted-foreground hover:text-accent border border-border/50 hover:border-accent/30 transition-all cursor-pointer shrink-0 shadow-2xs" data-code="${escapeHtml(text)}" aria-label="Copy to clipboard">
+    <svg class="copy-icon w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+    <svg class="copied-icon w-3.5 h-3.5 text-emerald-500 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M20 6L9 17l-5-5"/></svg>
+    <span class="copy-text hidden sm:inline">Copy</span>
+  </button>
 </div>
 `);
 }

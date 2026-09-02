@@ -2812,6 +2812,26 @@
     });
   }
 
+  // --- 16. JSON Tree Expand / Collapse Controller ---
+  function initJsonTrees() {
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('.docboot-json-toggle-btn');
+      if (!btn) return;
+      var action = btn.getAttribute('data-action');
+      var container = btn.closest('[data-docboot-json-tree="true"]');
+      if (!container) return;
+
+      var detailsNodes = container.querySelectorAll('.docboot-json-node');
+      detailsNodes.forEach(function(node) {
+        if (action === 'expand') {
+          node.open = true;
+        } else if (action === 'collapse') {
+          node.open = false;
+        }
+      });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     initTheme();
     initCopyButtons();
@@ -2826,6 +2846,7 @@
     initCarousels();
     initCollapsibleCodeBlocks();
     initCopyPageMarkdown();
+    initJsonTrees();
     initSoftNavigation();
     initLiveReload();
     initScrollRestoration();

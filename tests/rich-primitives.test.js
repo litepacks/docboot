@@ -828,4 +828,49 @@ negativeText: Not really
     assert.ok(parsedCodesandbox.html.includes('codesandbox.io/embed/demo-box'), 'Should format CodeSandbox URL');
   });
 
+  test('Directive: :::json renders interactive collapsible JSON tree', () => {
+    const raw = `:::json title="User Profile"
+{
+  "name": "Sarah",
+  "age": 30,
+  "admin": true,
+  "tags": ["developer", "architect"],
+  "stats": {
+    "commits": 120,
+    "rating": 4.9
+  },
+  "notes": null
+}
+:::`;
+
+    const parsed = parseMarkdown(raw);
+    assert.ok(parsed.html.includes('docboot-json-tree'), 'Should render json-tree container');
+    assert.ok(parsed.html.includes('User Profile'), 'Should render title');
+    assert.ok(parsed.html.includes('Expand all'), 'Should render expand all button');
+    assert.ok(parsed.html.includes('Collapse all'), 'Should render collapse all button');
+    assert.ok(parsed.html.includes('&quot;name&quot;:'), 'Should render key name');
+    assert.ok(parsed.html.includes('docboot-json-string'), 'Should style string value');
+    assert.ok(parsed.html.includes('docboot-json-number'), 'Should style number value');
+    assert.ok(parsed.html.includes('docboot-json-boolean'), 'Should style boolean value');
+    assert.ok(parsed.html.includes('docboot-json-null'), 'Should style null value');
+    assert.ok(parsed.html.includes('Array('), 'Should render array node badge');
+    assert.ok(parsed.html.includes('Copy JSON'), 'Should render copy JSON button');
+  });
+
+  test('Directive: :::copy renders block and inline copy buttons with feedback', () => {
+    const rawBlock = `:::copy prefix="$" label="Install Package"
+npm install docboot
+:::`;
+    const parsedBlock = parseMarkdown(rawBlock);
+    assert.ok(parsedBlock.html.includes('docboot-copy-block'), 'Should render copy block');
+    assert.ok(parsedBlock.html.includes('Install Package:'), 'Should render label');
+    assert.ok(parsedBlock.html.includes('npm install docboot'), 'Should render code text');
+    assert.ok(parsedBlock.html.includes('data-code="npm install docboot"'), 'Should set data-code attribute');
+
+    const rawInline = `To run locally, execute :::copy npx docboot dev::: in your terminal.`;
+    const parsedInline = parseMarkdown(rawInline);
+    assert.ok(parsedInline.html.includes('docboot-copy-inline'), 'Should render inline copy element');
+    assert.ok(parsedInline.html.includes('data-code="npx docboot dev"'), 'Should set data-code for inline copy');
+  });
+
 });

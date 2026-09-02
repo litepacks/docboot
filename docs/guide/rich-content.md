@@ -947,6 +947,66 @@ Syntax:
 
 ---
 
+## 35. Interactive Collapsible JSON Tree (`:::json` / `:::jsontree`)
+
+Display interactive, collapsible JSON payloads with syntax-highlighted semantic types, expandable nested objects and arrays, key counts, and a one-click raw JSON copy button:
+
+:::json title="User Profile Response" expandLevel=2
+{
+  "id": "usr_99182",
+  "name": "Sarah Connor",
+  "email": "sarah@example.com",
+  "roles": ["admin", "architect"],
+  "verified": true,
+  "metrics": {
+    "loginCount": 42,
+    "lastActive": "2026-09-02T14:20:00Z",
+    "score": 98.6
+  },
+  "tokens": null
+}
+:::
+
+Syntax:
+```markdown
+:::json title="API Response Payload" expandLevel=2
+{
+  "id": "usr_99182",
+  "name": "Sarah Connor",
+  "roles": ["admin", "architect"],
+  "active": true
+}
+:::
+```
+
+---
+
+## 36. One-Click Copy Snippets & Tokens (`:::copy`)
+
+Display copyable commands, environment tokens, or code snippets with instant visual feedback and copy toast:
+
+:::copy prefix="$" label="Install Package"
+npx create-docboot-app my-docs
+:::
+
+:::copy text="gh repo clone litepacks/docboot" prefix="git"
+:::
+
+You can also use inline copy badges within markdown paragraphs: run :::copy npm install docboot::: to install the CLI directly.
+
+Syntax:
+```markdown
+<!-- Block syntax with optional prefix and label -->
+:::copy prefix="$" label="Install CLI"
+npm install -g docboot
+:::
+
+<!-- Inline syntax in standard text paragraphs -->
+Run :::copy npx docboot dev::: in your project folder.
+```
+
+---
+
 ## Next Steps
 
 - [Image Optimization Pipeline](/guide/images) — Automatic responsive pictures, WebP/AVIF, and galleries
