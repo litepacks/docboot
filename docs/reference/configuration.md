@@ -189,8 +189,45 @@ editLink: false
 
 ---
 
+## 10. Static Route Redirects & Aliases
+
+Docboot provides build-time static redirect and alias resolution with zero-runtime router overhead.
+
+```javascript title="docboot.config.js"
+export default {
+  redirects: {
+    "/old-api": "/reference/api",
+    "/guide/install": "/getting-started/installation",
+    "/config": "/reference/configuration",
+    "/docs/search": "/guide/search#configuration",
+    "/legacy-site": "https://legacy.example.com"
+  }
+};
+```
+
+### Frontmatter Aliases & Redirects
+
+Declare discoverable route aliases and legacy redirect sources at the individual page level:
+
+```markdown title="docs/tooling/build-cache.md"
+---
+title: Build Cache
+aliases:
+  - /cache
+  - /incremental-cache
+redirectFrom:
+  - /legacy-cache-v1
+keywords:
+  - caching
+  - multi-tier
+---
+```
+
+---
+
 ## Next Steps
 
+- [Redirects & Aliases Guide](/guide/redirects) — Full guide and static hosting details
 - [CLI Reference](/reference/cli) — CLI commands and flags
 - [Directives Reference](/reference/directives) — Markdown extensions
-- [Docboot Doctor](/tooling/doctor) — Validating project configuration
+- [Docboot Doctor](/tooling/doctor) — Validating project configuration and redirect graphs

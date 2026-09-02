@@ -71,6 +71,13 @@ export class StatsCollector {
       formats: {}
     };
 
+    const redirectStats = buildResult.redirectStats || {
+      canonicalCount: pageCount || buildResult.pageCount,
+      aliasCount: 0,
+      redirectCount: 0,
+      externalCount: 0
+    };
+
     return {
       pageCount: pageCount || buildResult.pageCount,
       totalWords,
@@ -83,6 +90,12 @@ export class StatsCollector {
       jsSizeKb: (jsSize / 1024).toFixed(1),
       searchIndexSizeKb: (searchIndexSize / 1024).toFixed(1),
       cache: cacheMetrics,
+      routes: {
+        canonical: redirectStats.canonicalCount || pageCount || buildResult.pageCount,
+        aliases: redirectStats.aliasCount || 0,
+        redirects: redirectStats.redirectCount || 0,
+        external: redirectStats.externalCount || 0
+      },
       images: {
         sources: imageStats.sources || totalImages,
         variants: imageStats.variants,

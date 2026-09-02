@@ -136,6 +136,15 @@ export async function runCommand(flags) {
     console.log(`  ${pc.dim('JS runtime      ')} ${pc.cyan(stats.jsSizeKb + ' KB')}`);
     console.log(`  ${pc.dim('Search index    ')} ${pc.cyan(stats.searchIndexSizeKb + ' KB')}`);
 
+    if (stats.routes && (stats.routes.aliases > 0 || stats.routes.redirects > 0)) {
+      console.log('');
+      console.log(pc.bold('  ROUTE & REDIRECT METRICS\n'));
+      console.log(`  ${pc.dim('Canonical pages ')} ${pc.bold(stats.routes.canonical)}`);
+      if (stats.routes.aliases > 0) console.log(`  ${pc.dim('Aliases         ')} ${pc.cyan(stats.routes.aliases)}`);
+      if (stats.routes.redirects > 0) console.log(`  ${pc.dim('Redirects       ')} ${pc.cyan(stats.routes.redirects)}`);
+      if (stats.routes.external > 0) console.log(`  ${pc.dim('External        ')} ${pc.dim(stats.routes.external)}`);
+    }
+
     if (stats.images && stats.images.sources > 0) {
       console.log('');
       console.log(pc.bold('  IMAGE OPTIMIZATION METRICS\n'));

@@ -8,6 +8,7 @@ import { buildSidebar } from '../routes/navigation.js';
 import { CacheManager } from '../cache/index.js';
 import { hashString } from '../cache/hasher.js';
 import { validateAccessibility } from './a11y.js';
+import { buildRedirectManifest } from '../routes/redirects.js';
 
 export class Doctor {
   constructor(config, logger) {
@@ -333,36 +334,28 @@ export class Doctor {
       }
     }
 
-    // 5. Check Static Redirects
-    if (this.config.redirects && typeof this.config.redirects === 'object') {
-      const redirects = this.config.redirects;
-      for (const [from, to] of Object.entries(redirects)) {
-        const cleanTo = to.split('?')[0].split('#')[0];
-        if (!validRoutes.has(cleanTo) && !redirects[cleanTo]) {
-          warnings.push({
-            type: 'Invalid Redirect Target',
-            message: `Redirect ${from} → ${to} points to non-existent route: ${pc.yellow(cleanTo)}`
-          });
-        }
-        if (redirects[to]) {
-          warnings.push({
-            type: 'Redirect Chain',
-            message: `Redirect chain detected: ${from} → ${to} → ${redirects[to]}`
-          });
-        }
-        if (redirects[to] === from) {
-          errors.push({
-            type: 'Redirect Loop',
-            message: `Redirect loop detected: ${from} ↔ ${to}`
-          });
-        }
-      }
+    // 5. Check Static Redirects & Aliases
+    const redirectManifest = buildRedirectManifest(pages, this.config.redirects, { flattenChains: false });
+    for (const err of redirectManifest.errors) {
+      errors.push({
+        type: err.type,
+        message: err.suggestion ? `${err.message} (${pc.cyan(err.suggestion)})` : err.message
+      });
+    }
+    for (const warn of redirectManifest.warnings) {
+      warnings.push({
+        type: warn.type,
+        message: warn.message
+      });
     }
 
     // Pass items
     if (pages.length > 0) passes.push(`${pages.length} documentation pages discovered & parsed`);
     if (totalLinks > 0 && errors.filter(e => e.type === 'Broken Internal Link').length === 0) {
       passes.push(`${totalLinks} internal links verified`);
+    }
+    if (redirectManifest.errors.length === 0 && (redirectManifest.stats.aliasCount > 0 || redirectManifest.stats.redirectCount > 0)) {
+      passes.push(`${redirectManifest.stats.aliasCount} aliases & ${redirectManifest.stats.redirectCount} redirects verified`);
     }
     if (totalImages > 0 && errors.filter(e => e.type === 'Missing Image').length === 0) {
       passes.push(`${totalImages} image reference${totalImages === 1 ? '' : 's'} verified`);

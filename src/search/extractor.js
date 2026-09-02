@@ -265,8 +265,9 @@ export function extractSections(page, rawContent = '', frontmatter = {}) {
   // Build search records from sections with unique IDs
   const seenSlugs = new Set();
   const aliases = Array.isArray(frontmatter.aliases) ? frontmatter.aliases.join(' ') : (frontmatter.aliases || '');
+  const keywords = Array.isArray(frontmatter.keywords) ? frontmatter.keywords.join(' ') : (frontmatter.keywords || '');
   const tags = Array.isArray(frontmatter.tags) ? frontmatter.tags.join(' ') : (frontmatter.tags || '');
-  const extraSearchTerms = [aliases, tags, frontmatter.description || ''].filter(Boolean).join(' ');
+  const extraSearchTerms = [aliases, keywords, tags, frontmatter.description || ''].filter(Boolean).join(' ');
 
   for (let i = 0; i < rawSections.length; i++) {
     const sec = rawSections[i];

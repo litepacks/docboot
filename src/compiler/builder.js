@@ -23,6 +23,8 @@ import { GitMetadataResolver } from '../metadata/git.js';
 import { parseGitHubRemote } from '../setup/github/detect.js';
 import { ImageProcessor } from '../images/processor.js';
 import { calculateRelatedPages } from '../routes/related.js';
+import { buildRedirectManifest, renderRedirectHtml } from '../routes/redirects.js';
+import pc from 'picocolors';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -247,6 +249,18 @@ export class SiteBuilder {
       }
     }
 
+    // 1.8 Build and validate Redirect & Alias Manifest
+    const redirectManifest = buildRedirectManifest(pages, this.config.redirects, { flattenChains: true });
+    if (redirectManifest.errors.length > 0) {
+      const errorMsgs = redirectManifest.errors.map(e => `${e.type}: ${e.message}${e.suggestion ? ' (' + e.suggestion + ')' : ''}`).join('\n');
+      if (!this.quiet) {
+        console.error(pc.red(`\n✖ Redirect Validation Failed (${redirectManifest.errors.length} error${redirectManifest.errors.length === 1 ? '' : 's'}):`));
+        console.error(errorMsgs);
+      }
+      throw new Error(`Redirect Validation Failed:\n${errorMsgs}`);
+    }
+    this.redirectManifest = redirectManifest;
+
     // 2. Build Sidebar & Navigation maps
     const sidebar = buildSidebar(pages, this.config.sidebar, { metaMap: dirMetaMap });
     const prevNextMap = buildPrevNextMap(sidebar);
@@ -450,43 +464,44 @@ export class SiteBuilder {
     }
 
     // 7.6 Generate static redirects & aliases
-    const redirectsMap = new Map();
-    if (this.config.redirects && typeof this.config.redirects === 'object') {
-      for (const [from, to] of Object.entries(this.config.redirects)) {
-        redirectsMap.set(from.startsWith('/') ? from : '/' + from, to);
-      }
+    const netlifyRedirectLines = [];
+    const currentRedirectDirs = [];
+
+    for (const [fromRoute, entry] of redirectManifest.flattenedRedirects.entries()) {
+      const cleanFrom = fromRoute.replace(/^\/+/, '');
+      const targetDir = cleanFrom ? path.join(this.config.outDir, cleanFrom) : this.config.outDir;
+      fs.mkdirSync(targetDir, { recursive: true });
+      currentRedirectDirs.push(cleanFrom);
+
+      const targetUrl = entry.isExternal ? entry.target : withBase(entry.target, this.config.base);
+      const canonicalUrl = entry.isExternal ? entry.target : (entry.canonicalRoute ? withBase(entry.canonicalRoute, this.config.base) : targetUrl);
+
+      const redirectHtml = renderRedirectHtml({
+        targetUrl,
+        canonicalUrl,
+        title: `Redirecting to ${entry.target}`
+      });
+
+      fs.writeFileSync(path.join(targetDir, 'index.html'), redirectHtml, 'utf-8');
+
+      const netlifyTarget = entry.isExternal ? entry.target : withBase(entry.target, this.config.base);
+      netlifyRedirectLines.push(`${fromRoute} ${netlifyTarget} 301`);
     }
-    for (const page of pages) {
-      if (Array.isArray(page.frontmatter?.aliases)) {
-        for (const alias of page.frontmatter.aliases) {
-          const fromRoute = alias.startsWith('/') ? alias : '/' + alias;
-          redirectsMap.set(fromRoute, page.route);
+
+    // Clean up stale redirect directories from previous builds
+    const previousRedirects = this.cache.manifest.redirects || [];
+    for (const oldFrom of previousRedirects) {
+      if (!redirectManifest.flattenedRedirects.has('/' + oldFrom) && !redirectManifest.flattenedRedirects.has(oldFrom)) {
+        const staleDir = path.join(this.config.outDir, oldFrom);
+        if (fs.existsSync(staleDir)) {
+          try {
+            fs.rmSync(staleDir, { recursive: true, force: true });
+          } catch (_) {}
         }
       }
     }
+    this.cache.manifest.redirects = currentRedirectDirs;
 
-    const netlifyRedirectLines = [];
-    for (const [fromRoute, toRoute] of redirectsMap.entries()) {
-      const cleanFrom = fromRoute.replace(/^\/+/, '');
-      const targetDir = path.join(this.config.outDir, cleanFrom);
-      fs.mkdirSync(targetDir, { recursive: true });
-      const targetUrl = withBase(toRoute, this.config.base);
-      const redirectHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Redirecting...</title>
-  <link rel="canonical" href="${targetUrl}">
-  <meta http-equiv="refresh" content="0; url=${targetUrl}">
-  <script>window.location.replace("${targetUrl}");</script>
-</head>
-<body>
-  <p>Redirecting to <a href="${targetUrl}">${targetUrl}</a>...</p>
-</body>
-</html>`;
-      fs.writeFileSync(path.join(targetDir, 'index.html'), redirectHtml, 'utf-8');
-      netlifyRedirectLines.push(`${fromRoute} ${toRoute} 301`);
-    }
     if (netlifyRedirectLines.length > 0) {
       fs.writeFileSync(path.join(this.config.outDir, '_redirects'), netlifyRedirectLines.join('\n'), 'utf-8');
     }
@@ -522,7 +537,8 @@ export class SiteBuilder {
       elapsedMs,
       outDir: this.config.outDir,
       cacheMetrics,
-      imageStats
+      imageStats,
+      redirectStats: redirectManifest.stats
     };
   }
 }

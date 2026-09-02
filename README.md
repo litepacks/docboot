@@ -46,7 +46,7 @@ Markdown files and code blocks are compiled ahead of time into portable, standal
 No external search services and no per-query network requests. The pre-compiled index is loaded on demand and queried locally in memory with MiniSearch (`Cmd + K`).
 
 ### 4. Built-in Docs Tooling
-Validate internal cross-links, missing images, and route conflicts with `docboot doctor`, and inspect documentation metrics with `docboot stats`.
+Validate internal cross-links, redirects & aliases, missing images, and route conflicts with `docboot doctor`, and inspect documentation metrics with `docboot stats`. Redirects and aliases keep old documentation links working after reorganizing content.
 
 ---
 
