@@ -2537,47 +2537,77 @@
 
       function updatePosition(clientX) {
         var rect = container.getBoundingClientRect();
+        if (rect.width <= 0) return;
         var x = clientX - rect.left;
         var percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+        beforeOverlay.style.clipPath = 'inset(0 ' + (100 - percentage) + '% 0 0)';
+        beforeOverlay.style.webkitClipPath = 'inset(0 ' + (100 - percentage) + '% 0 0)';
         beforeOverlay.style.width = percentage + '%';
         handle.style.left = percentage + '%';
         handle.setAttribute('aria-valuenow', Math.round(percentage));
       }
 
       function onPointerDown(e) {
+        if (e.button !== undefined && e.button !== 0) return;
         isDragging = true;
-        updatePosition(e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX));
-        e.preventDefault();
+        try {
+          if (container.setPointerCapture && e.pointerId !== undefined) {
+            container.setPointerCapture(e.pointerId);
+          }
+        } catch (_) {}
+        var clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+        if (clientX !== undefined) updatePosition(clientX);
+        if (e.cancelable) e.preventDefault();
       }
 
       function onPointerMove(e) {
         if (!isDragging) return;
         var clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
-        if (clientX !== undefined) updatePosition(clientX);
+        if (clientX !== undefined) {
+          updatePosition(clientX);
+          if (e.cancelable) e.preventDefault();
+        }
       }
 
-      function onPointerUp() {
+      function onPointerUp(e) {
+        if (!isDragging) return;
         isDragging = false;
+        try {
+          if (container.releasePointerCapture && e.pointerId !== undefined) {
+            container.releasePointerCapture(e.pointerId);
+          }
+        } catch (_) {}
       }
 
-      container.addEventListener('mousedown', onPointerDown);
-      window.addEventListener('mousemove', onPointerMove);
-      window.addEventListener('mouseup', onPointerUp);
+      if (window.PointerEvent) {
+        container.addEventListener('pointerdown', onPointerDown);
+        container.addEventListener('pointermove', onPointerMove);
+        container.addEventListener('pointerup', onPointerUp);
+        container.addEventListener('pointercancel', onPointerUp);
+      } else {
+        container.addEventListener('mousedown', onPointerDown);
+        window.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
 
-      container.addEventListener('touchstart', onPointerDown, { passive: true });
-      window.addEventListener('touchmove', onPointerMove, { passive: true });
-      window.addEventListener('touchend', onPointerUp);
+        container.addEventListener('touchstart', onPointerDown, { passive: false });
+        window.addEventListener('touchmove', onPointerMove, { passive: false });
+        window.addEventListener('touchend', onPointerUp);
+      }
 
       handle.addEventListener('keydown', function(e) {
         var current = parseFloat(handle.getAttribute('aria-valuenow') || '50');
         if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
           var next = Math.max(0, current - 5);
+          beforeOverlay.style.clipPath = 'inset(0 ' + (100 - next) + '% 0 0)';
+          beforeOverlay.style.webkitClipPath = 'inset(0 ' + (100 - next) + '% 0 0)';
           beforeOverlay.style.width = next + '%';
           handle.style.left = next + '%';
           handle.setAttribute('aria-valuenow', next);
           e.preventDefault();
         } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
           var next = Math.min(100, current + 5);
+          beforeOverlay.style.clipPath = 'inset(0 ' + (100 - next) + '% 0 0)';
+          beforeOverlay.style.webkitClipPath = 'inset(0 ' + (100 - next) + '% 0 0)';
           beforeOverlay.style.width = next + '%';
           handle.style.left = next + '%';
           handle.setAttribute('aria-valuenow', next);

@@ -693,8 +693,15 @@ html.filter-tritanopia {
 }
 
 /* Comparison Slider */
+.docboot-compare-container {
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  -webkit-user-select: none;
+}
 .docboot-compare-handle {
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .docboot-compare-handle:focus-visible {
   outline: 2px solid var(--focus-ring);

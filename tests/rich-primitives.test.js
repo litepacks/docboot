@@ -27,6 +27,8 @@ afterAlt: New interface
     assert.ok(parsed.html.includes('Old interface'), 'Should render before alt');
     assert.ok(parsed.html.includes('New interface'), 'Should render after alt');
     assert.ok(parsed.html.includes('aria-valuenow="50"'), 'Should have initial a11y value');
+    assert.ok(parsed.html.includes('clip-path: inset('), 'Should use hardware-accelerated clip-path');
+    assert.ok(!parsed.html.includes('data-docboot-lightbox="true"'), 'Compare slider images must not trigger fullscreen lightbox');
   });
 
   test('Directive: :::steps renders semantic step-by-step layout', () => {
@@ -155,9 +157,15 @@ size: 140
     assert.ok(parsed.html.includes('Scan to open on mobile'), 'Should render visible title');
     assert.ok(parsed.html.includes('https://docboot.dev/mobile'), 'Should render fallback URL link');
 
-    const pureSvg = generateQrSvg('https://example.com', { size: 120 });
-    assert.ok(pureSvg.includes('<svg'), 'generateQrSvg should output valid SVG markup');
-    assert.ok(pureSvg.includes('width="120"'), 'generateQrSvg should respect size option');
+    // Test multiple versions (short, medium, long URLs)
+    const shortSvg = generateQrSvg('https://example.com', { size: 120 });
+    assert.ok(shortSvg.includes('<svg'), 'generateQrSvg should output valid SVG markup');
+    assert.ok(shortSvg.includes('width="120"'), 'generateQrSvg should respect size option');
+    assert.ok(shortSvg.includes('shape-rendering="crispEdges"'), 'Should render crisp SVG rectangles');
+
+    const longSvg = generateQrSvg('https://github.com/litepacks/docboot/tree/main/docs/guide/rich-content#17-qr-code-primitive-qr', { size: 240 });
+    assert.ok(longSvg.includes('<svg'), 'Long URL should generate valid multi-block QR SVG');
+    assert.ok(longSvg.includes('viewBox="0 0'), 'Should have valid viewBox');
   });
 
   test('Collapsible Code Blocks: parseCodeInfo and expand button markup', () => {

@@ -1151,40 +1151,32 @@ function renderCompare(args, body, config) {
   return unindent(`
 <figure class="docboot-compare not-prose my-8 select-none" data-docboot-compare="true">
   <div class="relative overflow-hidden rounded-xl border border-border bg-card-bg/60 shadow-md">
-    <div class="docboot-compare-container relative w-full overflow-hidden aspect-video">
+    <div class="docboot-compare-container relative w-full overflow-hidden aspect-video touch-none cursor-ew-resize">
       <!-- After Image (Background Layer) -->
-      <div class="docboot-compare-after absolute inset-0 w-full h-full">
+      <div class="docboot-compare-after absolute inset-0 w-full h-full pointer-events-none">
         <img
           src="${escapeHtml(afterResolved.displaySrc)}"
           alt="${escapeHtml(afterAlt)}"
           loading="lazy"
           decoding="async"
           class="w-full h-full object-cover pointer-events-none"
-          data-docboot-lightbox="true"
-          data-lightbox-src="${escapeHtml(afterResolved.highResSrc)}"
-          data-lightbox-alt="${escapeHtml(afterAlt)}"
         />
         <span class="absolute bottom-3 right-3 px-2.5 py-1 rounded text-xs font-semibold tracking-wide bg-black/70 text-white backdrop-blur-xs shadow-xs pointer-events-none">${escapeHtml(afterLabel)}</span>
       </div>
       <!-- Before Image (Clipped Overlay Layer) -->
-      <div class="docboot-compare-before absolute inset-0 h-full overflow-hidden pointer-events-none" style="width: 50%;">
-        <div class="absolute inset-0 w-full h-full" style="width: 100%;">
-          <img
-            src="${escapeHtml(beforeResolved.displaySrc)}"
-            alt="${escapeHtml(beforeAlt)}"
-            loading="lazy"
-            decoding="async"
-            class="w-full h-full object-cover"
-            data-docboot-lightbox="true"
-            data-lightbox-src="${escapeHtml(beforeResolved.highResSrc)}"
-            data-lightbox-alt="${escapeHtml(beforeAlt)}"
-          />
-        </div>
-        <span class="absolute bottom-3 left-3 px-2.5 py-1 rounded text-xs font-semibold tracking-wide bg-black/70 text-white backdrop-blur-xs shadow-xs">${escapeHtml(beforeLabel)}</span>
+      <div class="docboot-compare-before absolute inset-0 w-full h-full overflow-hidden pointer-events-none" style="clip-path: inset(0 50% 0 0); -webkit-clip-path: inset(0 50% 0 0);">
+        <img
+          src="${escapeHtml(beforeResolved.displaySrc)}"
+          alt="${escapeHtml(beforeAlt)}"
+          loading="lazy"
+          decoding="async"
+          class="w-full h-full object-cover pointer-events-none"
+        />
+        <span class="absolute bottom-3 left-3 px-2.5 py-1 rounded text-xs font-semibold tracking-wide bg-black/70 text-white backdrop-blur-xs shadow-xs pointer-events-none">${escapeHtml(beforeLabel)}</span>
       </div>
       <!-- Draggable Handle -->
-      <div class="docboot-compare-handle absolute top-0 bottom-0 w-1 bg-white shadow-xl cursor-ew-resize flex items-center justify-center -translate-x-1/2 focus:outline-hidden focus:ring-2 focus:ring-accent" style="left: 50%;" role="slider" aria-label="Image comparison slider" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" tabindex="0">
-        <div class="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border-2 border-accent shadow-lg flex items-center justify-center text-accent">
+      <div class="docboot-compare-handle absolute top-0 bottom-0 w-1 bg-white shadow-xl cursor-ew-resize flex items-center justify-center -translate-x-1/2 focus:outline-hidden focus:ring-2 focus:ring-accent z-10 touch-none" style="left: 50%;" role="slider" aria-label="Image comparison slider" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" tabindex="0">
+        <div class="w-8 h-8 rounded-full bg-white dark:bg-slate-900 border-2 border-accent shadow-lg flex items-center justify-center text-accent pointer-events-none">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m9 18-6-6 6-6M15 6l6 6-6 6"/></svg>
         </div>
       </div>
